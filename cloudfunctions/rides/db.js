@@ -10,6 +10,7 @@ const {
   CREDIT_LOW,
   BAN_DAYS_MS,
   T_MIN_GAP,
+  T_SAME_DIR,
   ACTIVE_STATUS,
   MSG_MAX,
   randNick,
@@ -79,11 +80,19 @@ async function getRide(rideId) {
   return res.data[0] || null;
 }
 
-// 是否存在出发时间太近（< T_MIN_GAP）的未出发局。
-async function findTimeConflict(openid, boardAt) {
+// 是否存在冲突的未出发局：① 任何方向出发时间差 < T_MIN_GAP（无法同时上两辆的士）；
+// ② 同方向（directionId 相同）且时间差 < T_SAME_DIR（同向需先完成一趟往返才能再出发）。
+async function findTimeConflict(openid, boardAt, directionId) {
   const res = await db.collection("rides").where({ memberOpenids: openid, status: _.in(ACTIVE_STATUS) }).get();
   const act = res.data || [];
-  return act.find((r) => Math.abs(r.boardAt - boardAt) < T_MIN_GAP) || null;
+  return (
+    act.find((r) => {
+      const diff = Math.abs(r.boardAt - boardAt);
+      if (diff < T_MIN_GAP) return true;
+      if (directionId && r.directionId === directionId && diff < T_SAME_DIR) return true;
+      return false;
+    }) || null
+  );
 }
 
 /** 局内最近 20 条消息（升序，含 type），detail 与聊天轮询共用。 */

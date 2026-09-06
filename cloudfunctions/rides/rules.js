@@ -6,7 +6,8 @@ const MIN = 60 * 1000;
 // —— 时间线（毫秒）——
 const T_JOIN_CLOSE = 10 * MIN; // T−10 停止加入/关局
 const T_FREE_EXIT = 30 * MIN; // T−30 自由退出/解散截止
-const T_MIN_GAP = 60 * MIN; // 同人两个未出发局须相隔 ≥1h
+const T_MIN_GAP = 60 * MIN; // 同人两个未出发局须相隔 ≥1h（任何方向：不能同时上两辆的士）
+const T_SAME_DIR = 120 * MIN; // 同方向（返校×返校 / 离校×离校）须相隔 ≥2h（往返的士约 1h + 缓冲）
 const T_POLL_ASK = 60 * MIN; // T−60 人数轮询发起
 const T_POLL_DUE = 45 * MIN; // T−45 轮询截止（未回复默认接受）
 const T_CHECKIN_GRACE = 10 * MIN; // T+10 停止"我到了"签到
@@ -51,6 +52,7 @@ module.exports = {
   T_JOIN_CLOSE,
   T_FREE_EXIT,
   T_MIN_GAP,
+  T_SAME_DIR,
   T_POLL_ASK,
   T_POLL_DUE,
   T_CHECKIN_GRACE,

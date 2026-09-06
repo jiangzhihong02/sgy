@@ -199,8 +199,8 @@ Page({
       const c = res.data.conflict;
       this.setData({
         err: {
-          head: "你已有出发时间太近的拼车局",
-          sub: "请先退出或等它结束后再发起",
+          head: res.msg || "你已有冲突的进行中拼车局",
+          sub: "先退出「已加入」的那一局，或等它结束后再发起",
           rows: [
             { label: "已加入", text: `${c.routeLabel} · ${fmtDate(c.boardAt)} ${fmtTime(c.boardAt)}` },
             { label: "新建冲突", text: `${routeText} · ${date} ${time}` },

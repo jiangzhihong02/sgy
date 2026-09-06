@@ -2,6 +2,8 @@
 const {
   T_JOIN_CLOSE,
   T_FREE_EXIT,
+  T_MIN_GAP,
+  T_SAME_DIR,
   CREDIT_LOW,
   CREDIT_LEAVE_NO_SHOW,
   T_POLL_DUE,
@@ -24,6 +26,15 @@ const {
   getRide,
   findTimeConflict,
 } = require("./db");
+
+// 冲突是否因"同方向往返不足"（区别于单纯出发太近）
+const dirLabel = (d) => (d === "in" ? "返校" : d === "out" ? "离校" : "");
+function conflictMsg(conf, boardAt, directionId) {
+  const diff = Math.abs(conf.boardAt - boardAt);
+  const sameDir = directionId && conf.directionId === directionId && diff >= T_MIN_GAP && diff < T_SAME_DIR;
+  if (!sameDir) return null;
+  return `同一时段你已有一班同方向「${dirLabel(directionId)}」局：同向出发需先完成一趟往返，两局间隔需 ≥2 小时。`;
+}
 
 async function create(event, openid) {
   const { date, time, capacity = 4, womenOnly = false, note = "" } = event;
@@ -51,8 +62,11 @@ async function create(event, openid) {
   if (user.credit < CREDIT_LOW) return fail("HOST_BLOCKED", "信用分低于 60，暂停发起新局 7 天");
   const needReg = await ensureRegistered(openid);
   if (needReg) return needReg;
-  const conf = await findTimeConflict(openid, boardAt);
-  if (conf) return fail("ACTIVE_RIDE", "你已有出发时间太近的进行中拼车局，请先退出或等它结束", { conflict: briefOf(conf) });
+  const conf = await findTimeConflict(openid, boardAt, route.directionId);
+  if (conf) {
+    const msg = conflictMsg(conf, boardAt, route.directionId) || "你已有出发时间太近的进行中拼车局，请先退出或等它结束";
+    return fail("ACTIVE_RIDE", msg, { conflict: briefOf(conf) });
+  }
 
   const now = Date.now();
   const member = { openid, name: user.nickName || "拼友", gender: user.gender || "", role: "host", checkedInAt: 0, joinedAt: now };
@@ -91,8 +105,11 @@ async function join(event, openid) {
   if (ride.memberCount >= ride.capacity) return fail("FULL", "这一局已满员");
   if (getMember(ride, openid)) return fail("ALREADY_IN", "你已在这一局里");
   if (now > ride.boardAt - T_JOIN_CLOSE) return fail("CLOSED", "距上车不足 10 分钟，已停止加入");
-  const conf = await findTimeConflict(openid, ride.boardAt);
-  if (conf) return fail("ACTIVE_RIDE", "你已有出发时间太近的进行中拼车局，请先退出", { conflict: briefOf(conf) });
+  const conf = await findTimeConflict(openid, ride.boardAt, ride.directionId);
+  if (conf) {
+    const msg = conflictMsg(conf, ride.boardAt, ride.directionId) || "你已有出发时间太近的进行中拼车局，请先退出";
+    return fail("ACTIVE_RIDE", msg, { conflict: briefOf(conf) });
+  }
 
   const user = await ensureUser(openid);
   const needReg = await ensureRegistered(openid);

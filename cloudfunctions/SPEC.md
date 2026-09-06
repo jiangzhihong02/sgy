@@ -20,7 +20,7 @@
 ## 0b. 近期修订（2026-09，详见 docs/adr/0010）
 
 - 参与动作（create/join/sendMessage/inviteSend）要求 `users.registered=true`，否则 `NEED_REGISTER`。
-- 并发规则：`T_MIN_GAP=1h`，同人多个未出发局仅当出发时间差 <1h 才冲突；失败带 `data.conflict`。
+- 并发规则：同人多个未出发局——**任何方向**出发时间差 <1h（`T_MIN_GAP`）即冲突；**同方向**（返校×返校 / 离校×离校）再额外要求 ≥2h（`T_SAME_DIR`：同向需先完成一趟往返）。冲突失败带 `data.conflict`。
 - 举报（complaint）：kind 限 `gender_fake|lateness|absence`；同一(局,人)同类一人一次；同局 ≥2 名不同成员联名自动坐实并只扣一次。
 - rides 新增 action：`messages`（轻量拉消息）、`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。消息带 `type: text|image`（image=base64 data URI，单条 ≤200k 字符，每人每局 1 张）。
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
@@ -92,6 +92,8 @@
 ```
 T_JOIN_CLOSE = 10 * 60_000     // T−10 停止加入
 T_FREE_EXIT  = 30 * 60_000     // T−30 自由退出/解散截止
+T_MIN_GAP    = 60 * 60_000     // 任意方向两局须相隔 ≥1h
+T_SAME_DIR   = 120 * 60_000    // 同方向两局须相隔 ≥2h（往返的士约 1h + 缓冲；唯一来源 rides/rules.js）
 T_POLL_ASK   = 60 * 60_000     // T−60 人数轮询
 T_POLL_DUE   = 45 * 60_000     // T−45 轮询截止（未回默认接受）
 T_CHECKIN_GRACE = 10 * 60_000  // T+10 停止"我到了"签到
@@ -112,9 +114,9 @@ ongoing
 ```
 
 **约束（写入时校验，违反返回 `{ ok:false }`）：**
-1. **一人一未出发局**：openid 不能同时是另一个 `status ∈ {recruiting, locked}` 的局的成员或发起人（create/join 都查）。
+1. **并发可行性（create/join 都查）**：同人可并存多个未出发局，但任意两局出发时间差 < `T_MIN_GAP`(1h) 即冲突；同方向（directionId 相同）且差 < `T_SAME_DIR`(2h) 也冲突（同向需先完成一趟往返）。
 2. **join**：`status==='recruiting' && now ≤ T−T_JOIN_CLOSE && memberCount<capacity`；性别不影响加入（仅用于头像框着色与不实检举）。
-3. **create（发起）**：用户 `credit ≥ 60` 才可发起；同一校验"一人一未出发局"；`boardAt` 需 > now + T_FREE_EXIT（给他人留组队窗口）。
+3. **create（发起）**：用户 `credit ≥ 60` 才可发起；同一并发可行性校验（见上约束 1）；`boardAt` 需 > now + T_FREE_EXIT（给他人留组队窗口）。
 4. **leave**：仅 `status ∈ {recruiting, locked}` 且 `now < T`。`now < T−T_FREE_EXIT` → 免费；否则计爽约（credit −20，见 §4）。发起人离开时若仍有成员，把 `role:'host'` 转给 `joinedAt` 最早者；若空则 `cancelled`。
 5. **cancel（发起人解散）**：仅 `now < T−T_FREE_EXIT`。
 6. **checkin（我到了）**：成员本人，`now ≤ T+T_CHECKIN_GRACE`，`status ∈ {recruiting, locked, ongoing}`；幂等（已签不重复）。
