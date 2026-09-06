@@ -1,0 +1,208 @@
+// pages/feed/feed.js —— Tab1 找局（云 rides.list + 本地筛选）
+// 筛选：方向(返校/离校/全部) · 上车点/下车点(下拉) · 还差几人(空位)
+const api = require("../../utils/api.js");
+const { ROUTES, statusView, dayLabel, departFromNow } = require("../../utils/domain.js");
+
+const DIR_OPTIONS = [
+  { id: "in", label: "返校" },
+  { id: "out", label: "离校" },
+  { id: "all", label: "全部方向" },
+];
+const SEAT_OPTIONS = [
+  { v: 0, label: "不限" },
+  { v: 1, label: "≥1" },
+  { v: 2, label: "≥2" },
+  { v: 3, label: "≥3" },
+];
+const CUSTOM = "__custom__";
+
+function inboundPlaces() {
+  const seen = [];
+  ROUTES.filter((r) => r.directionId === "in").forEach((r) => {
+    if (!seen.some((x) => x.id === r.from)) seen.push({ id: r.from, label: r.from });
+  });
+  return seen;
+}
+function outboundPlaces() {
+  const seen = ROUTES.filter((r) => r.directionId === "out").map((r) => ({ id: r.to, label: r.to }));
+  seen.push({ id: CUSTOM, label: "自定义下车点（其它香港地点）" });
+  return seen;
+}
+
+Page({
+  data: {
+    dirOptions: DIR_OPTIONS,
+    selectedDir: "in",
+    dirLabel: "返校",
+    openKey: "none", // none | dir | place | seat
+
+    placeOptions: inboundPlaces(),
+    placeHeader: "上车点",
+    placeValue: "all", // 'all' | from/to 名 | __custom__
+    placeLabel: "全部上车点",
+
+    seatOptions: SEAT_OPTIONS,
+    seatVal: 0,
+    seatLabel: "不限",
+
+    rides: [],
+    loading: true,
+    loaded: false,
+    invites: [],
+  },
+
+  onLoad() {
+    this.refresh();
+  },
+  onShow() {
+    if (this.data.loaded) this.refresh();
+  },
+  onPullDownRefresh() {
+    this.refresh().finally(() => wx.stopPullDownRefresh());
+  },
+  onShareAppMessage() {
+    return { title: "深港拼车 · 找同路人组队拼的士", path: "/pages/feed/feed" };
+  },
+
+  async refresh() {
+    const res = await api.call("rides", { action: "list" });
+    this._rides = res.ok ? res.data.rides : [];
+    if (!res.ok) wx.showToast({ title: res.msg || "加载失败", icon: "none" });
+    this.render();
+    this.loadInvites();
+  },
+
+  async loadInvites() {
+    const res = await api.call("rides", { action: "inviteList" });
+    this.setData({ invites: res.ok ? res.data.invites : [] });
+  },
+
+  openInvite() {
+    const first = this.data.invites[0];
+    if (first && first.live) {
+      wx.navigateTo({ url: `/pages/ride/ride?id=${first.rideId}` });
+    } else {
+      wx.showToast({ title: "该邀请的队伍已满/已结束", icon: "none" });
+    }
+  },
+
+  async declineInvite() {
+    const first = this.data.invites[0];
+    if (!first) return;
+    await api.call("rides", { action: "inviteRespond", inviteId: first._id, accept: false });
+    this.loadInvites();
+  },
+
+  // ---- 下拉控制 ----
+  onOpen(e) {
+    const key = e.currentTarget.dataset.k;
+    this.setData({ openKey: this.data.openKey === key ? "none" : key });
+  },
+  closeAll() {
+    this.setData({ openKey: "none" });
+  },
+
+  onPickDir(e) {
+    const id = e.currentTarget.dataset.id;
+    const label = DIR_OPTIONS.find((x) => x.id === id).label;
+    const patch = { selectedDir: id, dirLabel: label, placeValue: "all", openKey: "none" };
+    if (id === "in") {
+      patch.placeOptions = inboundPlaces();
+      patch.placeHeader = "上车点";
+      patch.placeLabel = "全部上车点";
+    } else if (id === "out") {
+      patch.placeOptions = outboundPlaces();
+      patch.placeHeader = "下车点";
+      patch.placeLabel = "全部下车点";
+    }
+    this.setData(patch);
+    this.render();
+  },
+
+  onPickPlace(e) {
+    const id = e.currentTarget.dataset.id;
+    const opt = this.data.placeOptions.find((x) => x.id === id);
+    const isAll = id === "all";
+    this.setData({
+      placeValue: id,
+      placeLabel: isAll ? (this.data.selectedDir === "in" ? "全部上车点" : "全部下车点") : opt ? opt.label : "全部",
+      openKey: "none",
+    });
+    this.render();
+  },
+
+  onPickSeat(e) {
+    const v = Number(e.currentTarget.dataset.id);
+    const opt = SEAT_OPTIONS.find((x) => x.v === v);
+    this.setData({ seatVal: v, seatLabel: opt.label, openKey: "none" });
+    this.render();
+  },
+
+  // ---- 列表 ----
+  render() {
+    const { selectedDir: dir, placeValue: place, seatVal } = this.data;
+    const list = (this._rides || [])
+      .filter((r) => {
+        if (dir !== "all" && r.directionId !== dir) return false;
+        if (place !== "all") {
+          if (dir === "in") {
+            if (r.from !== place) return false;
+          } else if (dir === "out") {
+            if (place === CUSTOM) {
+              if (r.routeId) return false; // 只有自定义下车点的局没有 routeId
+            } else if (r.to !== place) {
+              return false;
+            }
+          }
+        }
+        if (seatVal > 0 && r.capacity - r.memberCount < seatVal) return false;
+        return true;
+      })
+      .map((r) => {
+        const sv = statusView(r.status);
+        return {
+          ...r,
+          id: r._id,
+          routeLabel: r.routeLabel || `${r.from} → ${r.to}`,
+          timeText: dayLabel(r.boardAt),
+          departText: departFromNow(r.boardAt),
+          seatText: `${r.memberCount}/${r.capacity} 人`,
+          statusLabel: sv.label,
+          statusCls: sv.cls,
+          joined: !!r.joined,
+          mine: !!r.mine,
+          marked: !!r.mine || !!r.joined,
+          markLabel: r.mine ? "我发起的" : r.joined ? "已加入" : "",
+          // 固定 capacity 个头像位：有人=真人头像；空位=灰圈加号
+          slots: (() => {
+            const mem = r.membersBrief || [];
+            const cap = r.capacity || 4;
+            const arr = [];
+            for (let i = 0; i < cap; i++) {
+              const m = mem[i];
+              arr.push(
+                m
+                  ? {
+                      k: i,
+                      filled: true,
+                      text: (m.name || "?").slice(0, 1),
+                      cls: m.gender === "female" ? "avatar-female" : m.gender === "male" ? "avatar-male" : "",
+                    }
+                  : { k: i, filled: false, text: "" }
+              );
+            }
+            return arr;
+          })(),
+          joinable: r.status === "recruiting" && r.memberCount < r.capacity,
+        };
+      });
+    this.setData({ rides: list, loading: false, loaded: true });
+  },
+
+  goCreate() {
+    wx.navigateTo({ url: "/pages/create/create" });
+  },
+  openRide(e) {
+    wx.navigateTo({ url: `/pages/ride/ride?id=${e.currentTarget.dataset.id}` });
+  },
+});

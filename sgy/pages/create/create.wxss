@@ -1,0 +1,77 @@
+/* pages/create/create.wxss */
+.dir-card {
+  padding: 16rpx 24rpx;
+}
+.dir-desc {
+  margin-top: 4rpx;
+}
+.time-big {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+.cap-group {
+  flex-wrap: nowrap;
+}
+.cap-chip {
+  margin: 0 12rpx 0 0;
+}
+.women-tip {
+  margin-left: 16rpx;
+}
+.rules-tip {
+  margin: 20rpx 40rpx;
+  text-align: center;
+}
+
+/* 发局冲突提示卡 */
+.err-card {
+  margin: 24rpx;
+  background: #fff7f7;
+  border: 1rpx solid #ffd7d6;
+  border-radius: 16rpx;
+  padding: 24rpx;
+}
+.err-head {
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #fa5151;
+}
+.err-sub {
+  text-align: center;
+  font-size: 24rpx;
+  color: #8a9099;
+  margin: 6rpx 0 18rpx;
+}
+.err-table {
+  border: 1rpx solid #ffe3e2;
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+.err-row {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 16rpx;
+  background: #fff;
+}
+.err-row + .err-row {
+  border-top: 1rpx solid #f0f1f3;
+}
+.err-label {
+  width: 150rpx;
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #4e545c;
+}
+.err-label.primary {
+  color: #07a55a;
+}
+.err-label.danger {
+  color: #fa5151;
+}
+.err-text {
+  flex: 1;
+  font-size: 24rpx;
+  color: #1f2329;
+  line-height: 1.5;
+}

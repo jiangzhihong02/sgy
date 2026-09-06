@@ -1,0 +1,114 @@
+<!--pages/feed/feed.wxml-->
+<view class="page">
+  <!-- 筛选栏：方向/上车·下车点/空位 同一排下拉 -->
+  <view class="filter">
+    <view class="filter-row">
+      <view class="chip fchip {{openKey === 'dir' ? 'active' : ''}}" data-k="dir" bindtap="onOpen">
+        <text>{{dirLabel}}</text><text class="arr">▼</text>
+      </view>
+
+      <block wx:if="{{selectedDir !== 'all'}}">
+        <view class="chip fchip {{openKey === 'place' ? 'active' : ''}}" data-k="place" bindtap="onOpen">
+          <text class="place-txt">{{placeLabel}}</text><text class="arr">▼</text>
+        </view>
+      </block>
+
+      <view class="chip fchip {{openKey === 'seat' ? 'active' : ''}}" data-k="seat" bindtap="onOpen">
+        <text>空位 {{seatVal === 0 ? '不限' : '≥' + seatVal}}</text><text class="arr">▼</text>
+      </view>
+    </view>
+
+    <!-- 遮罩 -->
+    <view wx:if="{{openKey !== 'none'}}" class="mask" bindtap="closeAll"></view>
+
+    <!-- 方向下拉 -->
+    <view wx:if="{{openKey === 'dir'}}" class="panel card">
+      <view class="panel-title">方向</view>
+      <view wx:for="{{dirOptions}}" wx:key="id" class="panel-opt {{selectedDir === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}" bindtap="onPickDir">
+        <text>{{item.label}}</text><text wx:if="{{selectedDir === item.id}}" class="primary">✓</text>
+      </view>
+    </view>
+
+    <!-- 上车点/下车点 下拉 -->
+    <view wx:if="{{openKey === 'place'}}" class="panel card">
+      <view class="panel-title">{{placeHeader}}</view>
+      <view class="panel-opt {{placeValue === 'all' ? 'active' : ''}}" data-id="all" bindtap="onPickPlace">
+        <text>{{selectedDir === 'in' ? '全部上车点' : '全部下车点'}}</text>
+        <text wx:if="{{placeValue === 'all'}}" class="primary">✓</text>
+      </view>
+      <view wx:for="{{placeOptions}}" wx:key="id" class="panel-opt {{placeValue === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}" bindtap="onPickPlace">
+        <text>{{item.label}}</text><text wx:if="{{placeValue === item.id}}" class="primary">✓</text>
+      </view>
+    </view>
+
+    <!-- 还差几人 -->
+    <view wx:if="{{openKey === 'seat'}}" class="panel card">
+      <view class="panel-title">还差几人（空位）</view>
+      <view wx:for="{{seatOptions}}" wx:key="v" class="panel-opt {{seatVal === item.v ? 'active' : ''}}"
+        data-id="{{item.v}}" bindtap="onPickSeat">
+        <text>{{item.v === 0 ? '不限' : '还差 ≥' + item.v}}</text>
+        <text wx:if="{{seatVal === item.v}}" class="primary">✓</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 组队邀请提示（收到的邀请，置顶小条） -->
+  <view wx:if="{{invites.length}}" class="invite-banner card no-margin">
+    <view class="row-between">
+      <view class="invite-text">
+        <text>💌 你有一个组队邀请</text>
+        <text class="small muted invite-from">来自「{{invites[0].fromName}}」，加入 TA 的队伍一起拼</text>
+      </view>
+      <view class="row invite-acts">
+        <text class="mini-btn" bindtap="openInvite">去看看</text>
+        <text class="mini-btn muted" bindtap="declineInvite">忽略</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 拼车局列表 -->
+  <view wx:if="{{rides.length}}" class="ride-list">
+    <view wx:for="{{rides}}" wx:key="id" class="card ride-card" data-id="{{item.id}}" bindtap="openRide">
+      <view class="row-between">
+        <text class="strong">{{item.routeLabel}}</text>
+        <text class="tag {{item.statusCls}}">{{item.statusLabel}}</text>
+      </view>
+
+      <view class="row-between ride-mid">
+        <view class="time-col">
+          <view class="time">{{item.timeText}}</view>
+          <view class="small muted">{{item.departText}}</view>
+        </view>
+        <view class="flex-1"></view>
+        <view class="avatar-stack">
+          <view wx:for="{{item.slots}}" wx:for-item="slot" wx:key="k"
+            class="avatar mini {{slot.filled ? slot.cls : 'avatar-ghost'}}">{{slot.filled ? slot.text : '＋'}}</view>
+        </view>
+        <view class="seats muted small">{{item.seatText}}</view>
+      </view>
+
+      <view class="row-between ride-foot">
+        <view class="small">
+          <text wx:if="{{item.note}}" class="muted note">{{item.note}}</text>
+        </view>
+        <view wx:if="{{item.marked}}" class="foot-mark">
+          <text class="tag {{item.mine ? 'tag-orange' : 'tag-green'}}">{{item.markLabel}}</text>
+        </view>
+        <button wx:elif="{{item.joinable}}" class="btn btn-primary btn-mini"
+          catchtap="openRide" data-id="{{item.id}}">加入</button>
+        <button wx:else class="btn btn-disabled btn-mini">{{item.memberCount >= item.capacity ? '已满员' : item.statusLabel}}</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空态 -->
+  <view wx:else class="empty">
+    <view class="empty-title">当前没有符合筛选的拼车局</view>
+    <view class="small">调整筛选，或点右下角发起一局</view>
+  </view>
+
+  <!-- 悬浮发局 -->
+  <view class="fab" bindtap="goCreate">发局</view>
+</view>

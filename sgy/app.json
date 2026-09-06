@@ -1,0 +1,53 @@
+{
+  "pages": [
+    "pages/feed/feed",
+    "pages/chat/chat",
+    "pages/trips/trips",
+    "pages/profile/profile",
+    "pages/create/create",
+    "pages/ride/ride",
+    "pages/admin/admin"
+  ],
+  "window": {
+    "backgroundColor": "#f6f7f9",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "深港拼车",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#8a9099",
+    "selectedColor": "#07c160",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/feed/feed",
+        "text": "找局",
+        "iconPath": "images/tab/feed.png",
+        "selectedIconPath": "images/tab/feed-active.png"
+      },
+      {
+        "pagePath": "pages/chat/chat",
+        "text": "聊天室",
+        "iconPath": "images/tab/chat.png",
+        "selectedIconPath": "images/tab/chat-active.png"
+      },
+      {
+        "pagePath": "pages/trips/trips",
+        "text": "行程",
+        "iconPath": "images/tab/trips.png",
+        "selectedIconPath": "images/tab/trips-active.png"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的",
+        "iconPath": "images/tab/profile.png",
+        "selectedIconPath": "images/tab/profile-active.png"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

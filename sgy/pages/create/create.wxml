@@ -1,0 +1,108 @@
+<!--pages/create/create.wxml-->
+<view class="page">
+  <!-- 方向 -->
+  <view class="section">方向</view>
+  <view class="card no-margin dir-card">
+    <view class="chips">
+      <view
+        wx:for="{{directions}}"
+        wx:key="id"
+        class="chip {{directionId === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="onPickDirection"
+      >{{item.label}}</view>
+    </view>
+    <view class="small muted dir-desc">{{selDirDesc}}</view>
+  </view>
+
+  <!-- 行程：返校 -->
+  <block wx:if="{{directionId === 'in'}}">
+    <view class="section">行程 · 返校</view>
+    <view class="card no-margin">
+      <view class="field">
+        <view class="field-label">上车点</view>
+        <picker class="flex-1" mode="selector" range="{{inOptions}}" range-key="label" value="{{inIndex}}" bindchange="onPickIn">
+          <view class="field-value">{{inLabel || inOptions[inIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="field-label">终点</view>
+        <view class="field-value muted">香港教育大学（固定）</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 行程：离校 -->
+  <block wx:else>
+    <view class="section">行程 · 离校</view>
+    <view class="card no-margin">
+      <view class="field">
+        <view class="field-label">起点</view>
+        <view class="field-value muted">香港教育大学（固定）</view>
+      </view>
+      <view class="field">
+        <view class="field-label">下车点</view>
+        <picker class="flex-1" mode="selector" range="{{outOptions}}" range-key="label" value="{{outIndex}}" bindchange="onPickOut">
+          <view class="field-value">{{outOptions[outIndex].label}}</view>
+        </picker>
+      </view>
+      <view wx:if="{{destCustom}}" class="field">
+        <view class="field-label">自定义</view>
+        <input class="flex-1" placeholder="如：粉岭 / 上水 / 元朗…" value="{{customDest}}"
+          bindinput="onCustomDestInput" maxlength="14" />
+      </view>
+    </view>
+    <view wx:if="{{destCustom}}" class="section-sub">可拼到任一香港地点（如住粉岭也顺路同车），车费现场 AA</view>
+  </block>
+
+  <!-- 通用行程 -->
+  <view class="card no-margin">
+    <view class="field">
+      <view class="field-label">日期</view>
+      <picker class="flex-1" mode="date" value="{{date}}" start="{{dateStart}}" bindchange="onPickDate">
+        <view class="field-value">{{date}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <view class="field-label">上车时间</view>
+      <picker class="flex-1" mode="time" value="{{time}}" start="{{timeStart}}" bindchange="onPickTime">
+        <view class="field-value time-big">{{time}}</view>
+      </picker>
+    </view>
+    <view class="field">
+      <view class="field-label">人数上限</view>
+      <view class="flex-1">
+        <view class="row cap-group">
+          <text wx:for="{{capacityRange}}" wx:key="*this"
+            class="chip cap-chip {{capacity === item ? 'active' : ''}}"
+            data-cap="{{item}}"
+            bindtap="onCapacityTap"
+          >{{item}} 人</text>
+        </view>
+        <view class="small muted">满 {{capacity}} 为止 · 2 人即成局</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="field-label">备注</view>
+      <input class="flex-1" placeholder="如：的士站最右边集合、大概几点到" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
+    </view>
+  </view>
+
+  <view class="rules-tip small muted" bindtap="onPreviewRule">
+    ℹ️ 一局的成立规则（T−60 轮询 · T−30 自由退出 · T−10 关局 ≥2 人成局）点这里查看
+  </view>
+
+  <!-- 发局冲突提示卡：居中 + 上下对比小表 -->
+  <view wx:if="{{err}}" class="err-card">
+    <view class="err-head">{{err.head}}</view>
+    <view class="err-sub">{{err.sub}}</view>
+    <view class="err-table">
+      <view class="err-row" wx:for="{{err.rows}}" wx:key="label">
+        <text class="err-label {{item.label === '新建冲突' ? 'danger' : 'primary'}}">{{item.label}}</text>
+        <text class="err-text">{{item.text}}</text>
+      </view>
+    </view>
+  </view>
+
+  <button class="btn btn-primary btn-block" bindtap="onSubmit">发起这一局</button>
+</view>

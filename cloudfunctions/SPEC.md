@@ -1,0 +1,184 @@
+# 云函数与数据契约（唯一来源）
+
+> 实现云函数时以本文档为准。领域语义见仓库根 `CONTEXT.md` / `docs/DESIGN.md` / `docs/adr/`。本文档只定义云侧接口与数据，不含 UI。
+
+## 0. 通用约定
+
+- 运行环境：微信云开发，`wx-server-sdk`，`cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV })`。
+- **openid**：一律取 `cloud.getWXContext().OPENID`，不信任前端传入。
+- **时间**：所有时间字段用 **毫秒时间戳 number**（避免时区/反序列化坑）。前端展示自行换算。
+- **响应信封**（云函数统一返回，前端据此判断）：
+  - 成功 `{ ok: true, data }`
+  - 失败 `{ ok: false, err: 'ERR_CODE', msg: '给用户看的中文提示' }`
+- **权限**：所有写操作在云函数内完成；集合权限设为"仅创建者可读写"或"所有用户不可读写(仅云函数)"均可，云函数以管理员身份访问不受限。
+- 每个集合建议加的索引（在控制台手动建，见 README）：
+  - `rides`：(status + boardAt)、(directionId + boardAt + status)、`memberOpenids`（数组等值匹配 "我的局/一人一局"）
+  - `messages`：(rideId + createdAt)
+  - `reports`：(rideId)、(status)
+  - `users`：(openid)
+
+## 0b. 近期修订（2026-09，详见 docs/adr/0010）
+
+- 参与动作（create/join/sendMessage/inviteSend）要求 `users.registered=true`，否则 `NEED_REGISTER`。
+- 并发规则：`T_MIN_GAP=1h`，同人多个未出发局仅当出发时间差 <1h 才冲突；失败带 `data.conflict`。
+- 举报（complaint）：kind 限 `gender_fake|lateness|absence`；同一(局,人)同类一人一次；同局 ≥2 名不同成员联名自动坐实并只扣一次。
+- rides 新增 action：`messages`（轻量拉消息）、`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。消息带 `type: text|image`（image=base64 data URI，单条 ≤200k 字符，每人每局 1 张）。
+- user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
+
+## 1. 集合与文档结构
+
+**blocks（不与其乘车标记）**：`{ byOpenid, targetOpenid, createdAt }`（by+target 幂等）。
+**invites（组队邀请）**：`{ rideId, fromOpenid, fromName, toOpenid, status: 'pending'|'accepted'|'declined', createdAt }`。
+
+### users（用户档案，惰性创建）
+| 字段 | 说明 |
+|---|---|
+| `openid` | string，唯一 |
+| `nickName` / `avatarUrl` | string，展示用（头像昵称填写能力所得） |
+| `gender` | string `''` \| `'female'` \| `'male'`（**自报**，不可信来源） |
+| `phoneVerified` | bool |
+| `credit` | number，初始 100，封顶 120 |
+| `createdAt` / `updatedAt` | number ms |
+| `bannedUntil` | number ms \| 0（封禁到期时间，见 REPORT_RULES） |
+
+### routes（线路目录，seed 一次）
+| 字段 | 说明 |
+|---|---|
+| `routeId` | string，`in-futian` 等，唯一 |
+| `directionId` | `'in'`(返校 SZ→HK) \| `'out'`(离校 HK→SZ) |
+| `from` / `to` | string，展示名（上车点 / 下车点） |
+| `enabled` | bool |
+
+一期 7 条见 `docs/DESIGN.md`「线路目录」。
+
+### rides（拼车局，核心）
+| 字段 | 说明 |
+|---|---|
+| `routeId` / `directionId` | string，引用 routes |
+| `from` / `to` | string，冗余快照（路由改名不影响历史局） |
+| `date` | string `YYYY-MM-DD` |
+| `boardAt` | number ms = T |
+| `capacity` | number 默认 4 |
+| `status` | `recruiting` \| `locked` \| `ongoing` \| `done` \| `cancelled` \| `failed` |
+| `womenOnly` | bool（**废弃**：UI 已移除"仅限女生"，仅历史数据保留，不再参与任何校验） |
+| `note` | string，发起人备注/暗号（≤50 字） |
+| `hostOpenid` | string |
+| `memberCount` | number（冗余，含发起人） |
+| `members` | array of `{ openid, name, gender, role: 'host'\|'member', checkedInAt: number\|0, joinedAt: number }`（gender 为加入时快照，用于头像框着色） |
+| `memberOpenids` | array of string，派生（保持与 members 同步），供"一人一未出发局/我的局"查询用 |
+| `poll` | object \| null，见 §2 轮询 |
+| `noShowConfirmed` | array of openid（结算期自动确认的爽约，便于展示） |
+| `createdAt` / `updatedAt` | number ms |
+| `settled` | bool，done 结算是否已执行 |
+
+### messages（局内聊天）
+`{ rideId, openid, name, text, createdAt }`
+
+### reports（爽约 / 举报 / 申诉）
+| 字段 | 说明 |
+|---|---|
+| `rideId` | string |
+| `byOpenid` | 上报人 |
+| `targetOpenid` | 被上报人 |
+| `kind` | `'no_show'`(爽约) \| `'false_report'`(乱标，仅管理员在申诉时使用) \| `'appeal'`(申诉) |
+| `note` | string |
+| `status` | `'pending'` \| `'upheld'` \| `'dismissed'` |
+| `creditDelta` | 确认后应扣分值（结算用，见 §4） |
+| `createdAt` / `resolvedAt` | number ms |
+
+## 2. 规则常量（毫秒）
+
+```
+T_JOIN_CLOSE = 10 * 60_000     // T−10 停止加入
+T_FREE_EXIT  = 30 * 60_000     // T−30 自由退出/解散截止
+T_POLL_ASK   = 60 * 60_000     // T−60 人数轮询
+T_POLL_DUE   = 45 * 60_000     // T−45 轮询截止（未回默认接受）
+T_CHECKIN_GRACE = 10 * 60_000  // T+10 未到可标爽约
+T_SETTLE     = 120 * 60_000    // T+120 自动结算 done
+```
+
+## 3. 拼车局状态机（rideSweep 定时推进 + 用户动作触发）
+
+```
+recruiting
+  ├─ 发起人 cancel（now < T−T_FREE_EXIT）──▶ cancelled
+  ├─ sweep at now ≥ T−T_JOIN_CLOSE：memberCount ≥2 ──▶ locked
+  │                                  memberCount <2 ──▶ failed（自动，不计爽约）
+locked
+  ├─ sweep at now ≥ T ──▶ ongoing
+ongoing
+  └─ sweep at now ≥ T+T_SETTLE ──▶ done（结算，见 §4）
+```
+
+**约束（写入时校验，违反返回 `{ ok:false }`）：**
+1. **一人一未出发局**：openid 不能同时是另一个 `status ∈ {recruiting, locked}` 的局的成员或发起人（create/join 都查）。
+2. **join**：`status==='recruiting' && now ≤ T−T_JOIN_CLOSE && memberCount<capacity`；性别不影响加入（仅用于头像框着色与不实检举）。
+3. **create（发起）**：用户 `credit ≥ 60` 才可发起；同一校验"一人一未出发局"；`boardAt` 需 > now + T_FREE_EXIT（给他人留组队窗口）。
+4. **leave**：仅 `status ∈ {recruiting, locked}` 且 `now < T`。`now < T−T_FREE_EXIT` → 免费；否则计爽约（credit −20，见 §4）。发起人离开时若仍有成员，把 `role:'host'` 转给 `joinedAt` 最早者；若空则 `cancelled`。
+5. **cancel（发起人解散）**：仅 `now < T−T_FREE_EXIT`。
+6. **checkin（我到了）**：成员本人，`now ≤ T+T_CHECKIN_GRACE`，`status ∈ {recruiting, locked, ongoing}`；幂等（已签不重复）。
+
+## 4. 结算与信用分（rideSweep 在 done 时执行，`settled` 防重入）
+
+- 规则：初始 100，`<60` 暂停发起 7 天（封禁到期 `bannedUntil = now + 7d`），封顶 120。
+- done 结算：
+  - 每位 **checkedInAt>0** 的成员 `credit +1`（封顶 120）。
+  - 到点仍未 checkin 且未 leave 且未被手动移除的成员 → 记为爽约：直接 `credit −20`（确定无疑的情形，无需管理员），并把 openid 记入 `ride.noShowConfirmed`。
+- **leave 在 T−T_FREE_EXIT 之后**触发时同步扣 `−20`。
+- **签到后放鸽子**（checkedInAt>0 但实际没上车）：无法自动判定，走**成员举报 + 管理员复核**：举报 `kind:'no_show'` 置 pending，管理员 `resolveReport('uphold')` 时若该成员曾有 checkin → `−40`，否则 `−20`。
+- **乱标**：申诉成立则记 `false_report`，乱标者 `−10`。
+- 信用更新统一收敛到 `applyCreditDelta(openid, delta)`（幂等安全，users 文档 update）。
+
+## 5. 轮询（T−60 人数确认，MVP 确定性实现）
+
+`rides.poll = { active, askedAt, dueAt(=T−T_POLL_DUE), responses:[{openid, accept:bool, at}] }`
+
+- **触发**：rideSweep 检测 `now ≥ T−T_POLL_ASK && now < T−T_POLL_DUE && recruiting && memberCount<capacity && !poll.active` → 建 poll，前端据此在局详情展示"是否接受当前 N 人出发？"。
+- **成员回应**：rides 函数 `action:'respondPoll'`，`accept` true/false。仅当 `now < dueAt` 且仍为成员。
+  - `accept=false`：等价免费退出（不扣分），从 members 移除，并**取消本轮 poll**（人数变了重问）。
+- **dueAt 结算（sweep）**：`poll.active` 中未回复成员默认 `accept=true`；全员接受 → `poll.status='accepted'`、`active=false`（局可按当前人数出发，但仍在 recruiting 继续招满或到 T−10 锁定）。任一显式 false 的成员已在上面退出。
+- 若随后 memberCount 变化（有人加入/退出）且仍 <capacity 且距 T−T_FREE_EXIT 仍足够 → 允许再开新一轮 poll（同一 dueAt 逻辑）。
+
+## 6. 云函数清单与 action 契约
+
+### `rides`（主业务）
+`exports.main = async (event)`，按 `event.action` 分发：
+- `create`：入 `{ routeId, date, time, capacity, note }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009）。出 `{ rideId }`。
+- `list`：入 `{ directionId?, pickup?, date? }` 可选。出未出发局数组（供"找局"，含 members 精简视图与 poll 状态）。默认只返回 `status∈{recruiting,locked}` 且 `boardAt > now − 某窗口`。
+- `my`：出我参与/发起的局（ongoing 进行中 / done 历史），不带消息。
+- `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到，+ 最新 N 条 messages。
+- `join`：入 `{ rideId }`。规则见 §3.2。
+- `leave`：入 `{ rideId }`。规则见 §3.4，含发起人移交/空局取消。
+- `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
+- `checkin`：入 `{ rideId }`。规则见 §3.6。
+- `respondPoll`：入 `{ rideId, accept }`。见 §5。
+- `reportNoShow`：入 `{ rideId, targetOpenid, note? }`。生成 pending report（需 rideId 同局成员、target 非本人、ride 已过 T+T_CHECKIN_GRACE 或该人已不可达）。
+- `reportGenderMismatch`：入 `{ rideId, targetOpenid, note? }`。生成 `kind:'gender_fake'` pending report（需同局成员、target 自报 female、非本人；坐实由管理员清空性别并 −20）。
+- `sendMessage`：入 `{ rideId, text }`。写 messages，需成员身份。
+
+### `user`（档案与信用管理）
+- `login`：入 `{ nickName, avatarUrl?, gender? }`。按 openid 惰性建档/更新，出 `{ user, isAdmin }`。
+- `adminList`：出待处理 reports + 用户信用列表（需管理员）。
+- `resolveReport`：入 `{ reportId, action: 'uphold'|'dismiss' }`（需管理员）。按 §4 应用扣分并置状态；`gender_fake` 坐实另需清空目标性别。
+- `banUser`：入 `{ openid, days }`（需管理员，信用清零用）。
+- **管理员判定**：`ADMIN_OPENIDS = [ 'wx81d8e8ae2b8ff3df 环境所属作者 openid（部署时填入）' ]`——上线前把作者 openid 填进该数组。
+
+### `routeInit`（一次性初始化，手动调用一次）
+- 幂等创建集合（users/routes/rides/messages/reports；已存在则跳过）。
+- 写入一期 7 条 routes（已存在按 routeId 跳过）。
+- 出每个集合的结果。
+
+### `rideSweep`（定时器，config.json 配每分钟触发器）
+每轮扫描 `rides where status in {recruiting,locked,ongoing} and boardAt < now+...`：
+1. 到期关局：`recruiting && now ≥ T−T_JOIN_CLOSE` → locked / failed。
+2. 到点上路：`locked && now ≥ T` → ongoing。
+3. 结算：`ongoing && now ≥ T+T_SETTLE` → done + §4 结算。
+4. 轮询触发/到期结算（§5）。
+手动调用 `event.force=true` 也执行（便于没有配触发器时手动跑）。
+
+## 7. 索引与部署步骤（写进 README）
+1. 开发者工具开通云开发 → 建环境 → 拿环境 ID 填 `sgy/app.js` 的 `env`。
+2. 右键 `cloudfunctions/routeInit` → 「上传并部署：云端安装依赖」，在云开发控制台或临时页调用一次初始化。
+3. 上传 `rides` / `user` / `rideSweep`（rideSweep 带 config.json 触发器）。
+4. 云开发控制台给 rides/messages/reports/users 按 §0 建索引。
+5. 作者 openid 填进 `user/index.js` 的 `ADMIN_OPENIDS`。

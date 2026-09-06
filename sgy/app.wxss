@@ -1,0 +1,265 @@
+/**app.wxss —— 全局样式与设计令牌（骨架期）*/
+page {
+  background: #f6f7f9;
+  color: #1f2329;
+  font-size: 28rpx;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+}
+
+button {
+  background: initial;
+  padding: 0;
+  margin: 0;
+  line-height: inherit;
+  font-size: inherit;
+}
+button::after {
+  border: none;
+}
+
+/* ---- 卡片 ---- */
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin: 0 24rpx 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(31, 35, 41, 0.04);
+}
+.card.no-margin {
+  margin: 0;
+}
+
+/* ---- 区块标题 ---- */
+.section {
+  margin: 24rpx 24rpx 16rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+.section-sub {
+  margin: -8rpx 24rpx 16rpx;
+  font-size: 24rpx;
+  color: #8a9099;
+}
+
+/* ---- 文字 ---- */
+.muted {
+  color: #8a9099;
+}
+.small {
+  font-size: 24rpx;
+}
+.strong {
+  font-weight: 600;
+}
+.primary {
+  color: #07c160;
+}
+.danger {
+  color: #fa5151;
+}
+.warn {
+  color: #ff9f0a;
+}
+
+/* ---- 行布局 ---- */
+.row {
+  display: flex;
+  align-items: center;
+}
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.flex-1 {
+  flex: 1;
+  min-width: 0;
+}
+.gap-sm {
+  margin-right: 12rpx;
+}
+
+/* ---- Chip 筛选 ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #1f2329;
+  border: 1rpx solid #e6e8eb;
+  margin: 0 16rpx 16rpx 0;
+  font-size: 26rpx;
+}
+.chip.active {
+  background: #e8f9ef;
+  color: #07c160;
+  border-color: #07c160;
+  font-weight: 600;
+}
+
+/* ---- 按钮 ---- */
+.btn {
+  border-radius: 12rpx;
+  text-align: center;
+  padding: 18rpx 0;
+  font-size: 28rpx;
+}
+.btn-primary {
+  background: #07c160;
+  color: #ffffff;
+}
+.btn-ghost {
+  background: #ffffff;
+  color: #07c160;
+  border: 1rpx solid #07c160;
+}
+.btn-danger-ghost {
+  background: #ffffff;
+  color: #fa5151;
+  border: 1rpx solid #fa5151;
+}
+.btn-disabled {
+  background: #e6e8eb;
+  color: #a5abb3;
+}
+.btn-block {
+  display: block;
+  width: auto;
+  margin: 24rpx;
+}
+
+/* ---- 标签 / 角标 ---- */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2rpx 14rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
+.tag-green {
+  background: #e8f9ef;
+  color: #07c160;
+}
+.tag-gray {
+  background: #f0f1f3;
+  color: #8a9099;
+}
+.tag-orange {
+  background: #fff3e0;
+  color: #ff9f0a;
+}
+.tag-red {
+  background: #ffeceb;
+  color: #fa5151;
+}
+
+/* ---- 头像 ---- */
+.avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: #e3f6ec;
+  color: #07a55a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.avatar-stack {
+  display: flex;
+}
+.avatar-stack .avatar {
+  margin-right: -16rpx;
+  border: 2rpx solid #ffffff;
+}
+/* 性别头像框：蓝男 粉女（自报，可被检举） */
+.avatar-female {
+  border: 3rpx solid #ff7fb2;
+}
+.avatar-male {
+  border: 3rpx solid #3d8bfd;
+}
+
+/* ---- 空态 ---- */
+.empty {
+  padding: 120rpx 40rpx;
+  text-align: center;
+  color: #8a9099;
+}
+.empty-title {
+  font-size: 30rpx;
+  color: #4e545c;
+  margin-bottom: 8rpx;
+}
+
+/* ---- 表单 ---- */
+.field {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.field:last-child {
+  border-bottom: none;
+}
+.field-label {
+  width: 180rpx;
+  color: #4e545c;
+  flex-shrink: 0;
+}
+.field-value {
+  flex: 1;
+  color: #1f2329;
+}
+.input,
+.picker {
+  background: #f6f7f9;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  min-height: 44rpx;
+}
+
+/* ---- 分隔线 ---- */
+.divider {
+  height: 1rpx;
+  background: #f0f1f3;
+  margin: 20rpx 0;
+}
+
+/* ---- 列表行 ---- */
+.list-row {
+  display: flex;
+  align-items: center;
+  padding: 22rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.list-row:last-child {
+  border-bottom: none;
+}
+
+/* ---- 其它 ---- */
+.fab {
+  position: fixed;
+  right: 32rpx;
+  bottom: 48rpx;
+  background: #07c160;
+  color: #fff;
+  width: 112rpx;
+  height: 112rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(7, 193, 96, 0.35);
+  z-index: 10;
+}

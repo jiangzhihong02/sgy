@@ -1,0 +1,162 @@
+<!--pages/ride/ride.wxml-->
+<view class="page">
+  <!-- 加载失败 -->
+  <view wx:if="{{loaded && errorMsg}}" class="empty">
+    <view class="empty-title">加载失败</view>
+    <view class="small">{{errorMsg}}</view>
+    <button class="btn btn-ghost back-btn" bindtap="goBack">返回</button>
+  </view>
+
+  <!-- 正常详情 -->
+  <block wx:elif="{{ride}}">
+    <!-- 顶部信息 -->
+    <view class="card ride-hero">
+      <view class="row-between">
+        <text class="tag {{ride.statusCls}}">{{ride.statusLabel}}</text>
+        <text class="small muted" bindtap="onRule">规则 ›</text>
+      </view>
+      <view class="route">{{ride.routeLabel}}</view>
+      <view class="row-between hero-mid">
+        <view class="time">{{ride.dayText}}</view>
+        <view class="hero-meta">
+          <view>{{ride.departText}}</view>
+          <view class="small muted">{{ride.seatText}}</view>
+        </view>
+      </view>
+      <!-- 备注：发起人可修改 -->
+      <view wx:if="{{isHost || ride.note}}" class="note-box small">
+        <block wx:if="{{editingNote}}">
+          <input class="note-input" value="{{noteDraft}}" bindinput="onNoteDraftInput" maxlength="50"
+            focus="{{true}}" placeholder="写点集合位置、大概几点到…" />
+          <view class="row note-actions">
+            <text class="mini-link" catchtap="onSaveNote">保存</text>
+            <text class="mini-link muted" catchtap="onCancelNoteEdit">取消</text>
+          </view>
+        </block>
+        <block wx:else>
+          <view class="row-between note-view {{isHost ? 'note-editable' : ''}}" bindtap="onTapNote">
+            <text class="flex-1 {{ride.note ? '' : 'muted'}}">{{ride.note || '暂无备注'}}</text>
+            <text wx:if="{{isHost}}" class="note-edit-btn">{{ride.note ? '修改' : '添加'}}</text>
+          </view>
+        </block>
+      </view>
+    </view>
+
+    <!-- 基本规则（点顶部「规则」展开） -->
+    <view wx:if="{{showRules}}" class="card rules-card">
+      <view class="rules-title">基本规则</view>
+      <view class="rules-row rules-head">
+        <text class="t">时间</text>
+        <text class="d">说明</text>
+      </view>
+      <view wx:for="{{rules}}" wx:key="t" class="rules-row">
+        <text class="t">{{item.t}}</text>
+        <text class="d">{{item.d}}</text>
+      </view>
+    </view>
+
+    <!-- T−60 人数确认轮询 -->
+    <view wx:if="{{meNeedPoll}}" class="card poll-card">
+      <view class="poll-title">当前 {{ride.memberCount}} 人，还没到 {{ride.capacity}} 人</view>
+      <view class="small muted">接受按当前人数出发、不再招满吗？——点"不了"会免费退出，其余人继续组。</view>
+      <view class="row poll-btns">
+        <button class="btn btn-primary act-half" bindtap="onPollYes">接受，照走</button>
+        <button class="btn btn-danger-ghost act-half" bindtap="onPollNo">不了，我退出</button>
+      </view>
+    </view>
+    <view wx:elif="{{pollAccepted}}" class="poll-tag">
+      <text class="tag tag-green">✅ 已确认按当前人数出发</text>
+    </view>
+
+    <!-- 成员 -->
+    <view class="section">成员（{{ride.memberCount}}/{{ride.capacity}}）</view>
+    <view class="card no-margin members">
+      <view wx:for="{{ride.members}}" wx:key="openid" class="list-row member-row"
+        data-openid="{{item.openid}}" data-name="{{item.name}}" bindtap="openMember">
+        <view class="avatar {{item.frame}}">{{item.avatarChar}}</view>
+        <view class="flex-1 member-name">
+          <text>{{item.name}}</text>
+          <text wx:if="{{item.role === 'host'}}" class="tag tag-green host-tag">发起人</text>
+          <text wx:if="{{item.checked}}" class="tag tag-gray">已签到</text>
+          <text wx:if="{{item.isMe}}" class="tag tag-orange">我</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作区 -->
+    <view class="card no-margin actions">
+      <view wx:if="{{canJoin && !isMember}}" class="join-wrap">
+        <button class="btn btn-primary join-center" bindtap="onJoin">加入这一局</button>
+      </view>
+
+      <block wx:elif="{{isMember}}">
+        <!-- 已结束/已取消：操作灰置，提示点队友头像即可再约 -->
+        <view wx:if="{{isDone}}" class="done-tip">
+          <view class="done-title">拼车已结束</view>
+          <view class="small muted">点击队友头像可 查看资料 · 举报 · 下周再约</view>
+        </view>
+        <block wx:else>
+          <view wx:if="{{canCancel}}" class="row">
+            <button class="btn btn-danger-ghost btn-block" bindtap="onCancel">解散这一局</button>
+          </view>
+          <view class="row act-row">
+            <button wx:if="{{!meChecked}}" class="btn btn-ghost act-half" bindtap="onCheckin">我到了</button>
+            <view wx:else class="tag tag-green act-half act-done">已签到 · 集合吧</view>
+            <button class="btn btn-danger-ghost act-half" bindtap="onLeave">退出</button>
+          </view>
+          <view wx:if="{{!meChecked}}" class="small muted act-tip">到点请点「我到了」；超时未到会被队友标记爽约</view>
+        </block>
+      </block>
+
+      <button wx:else class="btn btn-disabled btn-block">{{ride.memberCount >= ride.capacity ? '已满员' : (ride.statusLabel === '招募中' ? '已停止加入' : ride.statusLabel)}}</button>
+    </view>
+
+    <!-- 聊天室 -->
+    <view class="section">聊天室</view>
+    <view class="card no-margin chat">
+      <!-- 已加入：跳转去「聊天室」Tab，不再内嵌整块聊天 -->
+      <view wx:if="{{isMember}}" class="joined-chat">
+        <view class="joined-title">你已在队伍里</view>
+        <view class="small muted joined-tip">聊天统一在底部「聊天室」Tab（打开即最新消息）。</view>
+        <button class="btn btn-primary join-chat-btn" bindtap="goChatTab">去聊天室 ›</button>
+      </view>
+
+      <!-- 未加入：保留提示 -->
+      <view wx:else class="locked-chat">
+        <view class="locked-title">待加入拼车队聊天室</view>
+        <view class="small muted locked-tip">
+          加入这一局后才能查看/发送消息。底部「聊天室」Tab 会汇总你所在队伍的聊天，方便随时回来聊。
+        </view>
+        <button wx:if="{{canJoin}}" class="btn btn-primary join-chat-btn" bindtap="onJoin">加入这一局</button>
+      </view>
+    </view>
+
+    <!-- 已加入成员才需要转发拉人；未加入的人转发无意义 -->
+    <view wx:if="{{isMember}}" class="share-row">
+      <button class="btn btn-ghost btn-block" open-type="share">转发到群，还差人</button>
+    </view>
+
+    <view class="foot-note">只组队不约车：车由你们到点自行拦/叫，车费现场 AA</view>
+  </block>
+
+  <view wx:else class="empty">加载中…</view>
+
+  <!-- 成员资料浮层 -->
+  <view wx:if="{{showMember}}" class="mp-mask" bindtap="closeMember"></view>
+  <view wx:if="{{showMember && panel}}" class="mp-panel">
+    <view class="row mp-head">
+      <view class="avatar mp-avatar {{panel.gender === 'female' ? 'avatar-female' : panel.gender === 'male' ? 'avatar-male' : ''}}">{{panel.avatarChar}}</view>
+      <view class="flex-1 mp-info">
+        <view class="strong">{{panel.name}}</view>
+        <view class="small muted">性别：{{panel.genderText}} · 信用分：{{panel.credit}}</view>
+      </view>
+      <text class="mp-close" bindtap="closeMember">✕</text>
+    </view>
+    <button wx:if="{{!panel.isMe && isDone}}" class="btn btn-ghost btn-block mp-btn" bindtap="onPanelReinvite">下周同一时刻 · 再约 TA</button>
+    <button wx:if="{{!panel.isMe}}" class="btn {{panel.blocked ? 'btn-danger-ghost' : 'btn-ghost'}} btn-block mp-btn" bindtap="toggleBlock">
+      {{panel.blocked ? '取消标记（可同行）' : '标记：不与其乘车'}}
+    </button>
+    <button wx:if="{{!panel.isMe}}" class="btn btn-danger-ghost btn-block mp-btn" bindtap="onPanelReport">举报 TA（选原因）</button>
+    <view wx:if="{{!panel.isMe && !isDone}}" class="small muted mp-tip">标记后，加入含 TA 的队伍时会收到提醒</view>
+  </view>
+</view>

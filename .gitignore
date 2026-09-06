@@ -1,0 +1,10 @@
+# 依赖与本地配置不入库
+node_modules/
+miniprogram_npm/
+
+# 开发者工具本地私密配置（含个人偏好/临时环境）
+project.private.config.json
+
+# 微信开发者工具临时产物
+.DS_Store
+*.log

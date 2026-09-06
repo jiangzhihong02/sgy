@@ -1,0 +1,30 @@
+<!--pages/trips/trips.wxml-->
+<view class="page">
+  <view class="seg">
+    <view
+      wx:for="{{segs}}"
+      wx:key="id"
+      class="seg-item {{seg === item.id ? 'active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onSwitchSeg"
+    >{{item.label}}</view>
+  </view>
+
+  <view wx:if="{{trips.length}}" class="trip-list">
+    <view wx:for="{{trips}}" wx:key="id" class="card trip" data-id="{{item.id}}" bindtap="openRide">
+      <view class="row-between">
+        <text class="strong">{{item.routeLabel}}</text>
+        <text class="tag {{item.statusCls}}">{{item.statusLabel}}</text>
+      </view>
+      <view class="row-between trip-mid">
+        <text class="time">{{item.timeText}}</text>
+        <text class="muted small">{{item.seatText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty">
+    <view class="empty-title">{{seg === 'ongoing' ? '还没有进行中的局' : '还没有历史记录'}}</view>
+    <view class="small">{{seg === 'ongoing' ? '去「找局」页挑一个上车时间合适的局加入吧' : '完成的拼车局会出现在这里'}}</view>
+  </view>
+</view>

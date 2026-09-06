@@ -1,0 +1,66 @@
+<!--pages/chat/chat.wxml-->
+<view class="page">
+  <!-- 首次加载中 -->
+  <view wx:if="{{loading}}" class="empty">加载中…</view>
+
+  <!-- 未加入任何队伍 -->
+  <view wx:elif="{{!hasRooms}}" class="empty chat-empty-state">
+    <view class="empty-title">待加入拼车队聊天室</view>
+    <view class="small">先去「找局」加入或发起一个拼车局，加入后这里就能看到队伍聊天室了</view>
+    <button class="btn btn-primary empty-btn" bindtap="goFeed">去组队</button>
+  </view>
+
+  <!-- 有队伍：聊天室 -->
+  <block wx:else>
+    <!-- 顶部：当前队伍 + 多房间切换 -->
+    <view class="room-bar card no-margin" bindtap="openRide">
+      <view class="row-between">
+        <view class="flex-1">
+          <view class="room-title">{{curTitle}}</view>
+          <view class="small muted">点此查看队伍详情</view>
+        </view>
+        <text class="tag {{curStatusCls}}">{{curSub}}</text>
+      </view>
+    </view>
+
+    <scroll-view wx:if="{{rooms.length > 1}}" scroll-x class="room-switch" enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{rooms}}"
+        wx:key="rideId"
+        class="room-chip {{curRideId === item.rideId ? 'active' : ''}}"
+        data-id="{{item.rideId}}"
+        bindtap="onSwitchRoom"
+      >{{item.label}}</view>
+    </scroll-view>
+    <view wx:if="{{rooms.length > 1}}" class="small muted switch-hint">在多个队伍时可切换聊天室</view>
+
+    <!-- 消息区（占满剩余高度，内部滚动） -->
+    <scroll-view scroll-y class="msg-scroll">
+      <view wx:if="{{messages.length}}" class="chat-list">
+        <view wx:for="{{messages}}" wx:key="createdAt" class="chat-row {{item.mine ? 'mine' : ''}}">
+          <view class="avatar chat-avatar {{item.frame}}">{{item.whoChar}}</view>
+          <view class="chat-main">
+            <view class="chat-meta {{item.mine ? 'right' : ''}}">{{item.name}} · {{item.at}}</view>
+            <view class="chat-bubble {{item.type === 'image' ? 'img-bubble' : ''}}">
+              <block wx:if="{{item.type === 'image'}}">
+                <image wx:if="{{item.url}}" class="msg-img" src="{{item.url}}" mode="widthFix"
+                  show-menu-by-longpress data-src="{{item.url}}" bindtap="onPreviewImg" />
+                <view wx:elif="{{item.legacyImg}}" class="small muted legacy-tip">图片（旧版）暂不可见</view>
+              </block>
+              <view wx:else class="bubble-text">{{item.text}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="small muted chat-empty">还没消息——在这里约集合位置、分摊方式、接头暗号</view>
+    </scroll-view>
+
+    <!-- 底部输入条 -->
+    <view class="chat-input">
+      <view class="img-btn {{hasMyImage ? 'disabled' : ''}}" bindtap="onPickImage">{{hasMyImage ? '✓' : '✚'}}</view>
+      <input class="chat-input-field" placeholder="发消息…" value="{{chatInput}}" bindinput="onChatInput"
+        confirm-type="send" bindconfirm="onSend" />
+      <view class="send-btn" bindtap="onSend">发送</view>
+    </view>
+  </block>
+</view>

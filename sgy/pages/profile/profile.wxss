@@ -1,0 +1,110 @@
+/* pages/profile/profile.wxss */
+.user-card {
+  margin-top: 24rpx;
+}
+.user-card.tapable:active {
+  background: #f7f8fa;
+}
+.reg-title {
+  font-size: 30rpx;
+}
+.reg-input {
+  background: #f6f7f9;
+  border-radius: 10rpx;
+  padding: 14rpx 18rpx;
+  font-size: 27rpx;
+  margin-top: 16rpx;
+}
+.reg-genders {
+  margin-top: 16rpx;
+}
+.reg-actions {
+  margin-top: 24rpx;
+}
+.reg-actions .act-half {
+  margin-right: 16rpx;
+  padding: 16rpx 0;
+}
+.reg-actions .act-half:last-child {
+  margin-right: 0;
+}
+.reg-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+}
+.reg-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 32rpx 48rpx;
+  z-index: 100;
+}
+.reg-panel .reg-title {
+  margin-bottom: 6rpx;
+}
+.gender-card {
+  margin-top: 20rpx;
+  padding: 16rpx 24rpx;
+}
+.chip-sm {
+  padding: 6rpx 20rpx;
+  margin: 0 0 0 12rpx;
+  font-size: 24rpx;
+}
+.user-info {
+  margin-left: 20rpx;
+}
+.username {
+  margin-right: 12rpx;
+}
+.login-btn {
+  padding: 8rpx 28rpx;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+  flex-shrink: 0;
+}
+.credit-card {
+  margin-top: 20rpx;
+}
+.credit-num {
+  font-size: 72rpx;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 4rpx;
+}
+.credit-tip {
+  text-align: right;
+  line-height: 1.6;
+}
+.credit-bar {
+  height: 12rpx;
+  background: #f0f1f3;
+  border-radius: 999rpx;
+  margin-top: 20rpx;
+  overflow: hidden;
+}
+.credit-bar-fill {
+  height: 100%;
+  background: #07c160;
+  border-radius: 999rpx;
+  transition: width 0.3s;
+}
+.menu-card {
+  margin-top: 20rpx;
+}
+.menu-icon {
+  width: 60rpx;
+  margin-right: 12rpx;
+}
+.admin-entry {
+  text-align: center;
+  padding: 20rpx 0 40rpx;
+}

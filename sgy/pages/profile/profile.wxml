@@ -1,0 +1,75 @@
+<!--pages/profile/profile.wxml-->
+<view class="page">
+  <!-- 用户卡片：游客点头像/名字触发注册 -->
+  <view class="card user-card {{!user.registered ? 'tapable' : ''}}" bindtap="onTapUser">
+    <view class="row">
+      <view class="avatar {{user.gender === 'female' ? 'avatar-female' : user.gender === 'male' ? 'avatar-male' : ''}}">{{user.avatarChar}}</view>
+      <view class="flex-1 user-info">
+        <view class="row">
+          <text class="strong username">{{user.nickName}}</text>
+          <text wx:if="{{user.registered}}" class="tag tag-green">已注册</text>
+          <text wx:else class="tag tag-orange">游客</text>
+        </view>
+        <view class="small muted">{{user.registered ? '点我可修改昵称/性别' : '点击完善资料（填昵称）后才能参与拼车'}}</view>
+      </view>
+      <text wx:if="{{!user.registered}}" class="muted small">›</text>
+    </view>
+  </view>
+
+  <!-- 性别（请如实填写） -->
+  <view class="card gender-card">
+    <view class="row-between">
+      <text class="small muted">性别（请如实填写）</text>
+      <view class="chips">
+        <view wx:for="{{genders}}" wx:key="id" class="chip chip-sm {{user.gender === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}" bindtap="onPickGender">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 信用分 -->
+  <view class="card credit-card">
+    <view class="row-between">
+      <view>
+        <view class="small muted">信用分</view>
+        <view class="credit-num {{credit < 60 ? 'danger' : 'primary'}}">{{credit}}</view>
+      </view>
+      <view class="small muted credit-tip">爽约扣分 · 同行加分<br />低于 60 暂停发局</view>
+    </view>
+    <view class="credit-bar"><view class="credit-bar-fill" style="width: {{credit}}%"></view></view>
+  </view>
+
+  <!-- 菜单 -->
+  <view class="card menu-card">
+    <view wx:for="{{menu}}" wx:key="id" class="list-row" data-id="{{item.id}}" bindtap="onTapMenu">
+      <text class="menu-icon">{{item.icon}}</text>
+      <text class="flex-1">{{item.label}}</text>
+      <text class="muted small">›</text>
+    </view>
+  </view>
+
+  <!-- 管理员入口：仅 openid 命中 ADMIN_OPENIDS 时显示 -->
+  <view wx:if="{{isAdmin}}" class="card menu-card admin-card">
+    <view class="list-row" bindtap="onAdmin">
+      <text class="menu-icon">🛠️</text>
+      <text class="flex-1">管理员后台（代发种子局 / 上报复核）</text>
+      <text class="muted small">›</text>
+    </view>
+  </view>
+
+  <!-- 注册浮层 -->
+  <view wx:if="{{showReg}}" class="reg-mask" bindtap="onCloseReg"></view>
+  <view wx:if="{{showReg}}" class="reg-panel">
+    <view class="strong reg-title">完善资料，参与拼车</view>
+    <view class="small muted">填个昵称（每人不一样）即可发起/加入拼车局。</view>
+    <input class="reg-input" placeholder="昵称（可改）" value="{{registerNick}}" bindinput="onNickInput" maxlength="12" />
+    <view class="chips reg-genders">
+      <view wx:for="{{genders}}" wx:key="id" class="chip {{user.gender === item.id ? 'active' : ''}}"
+        data-id="{{item.id}}" bindtap="onPickGender">{{item.label}}</view>
+    </view>
+    <view class="row reg-actions">
+      <button class="btn btn-ghost act-half" bindtap="onCloseReg">取消</button>
+      <button class="btn btn-primary act-half" bindtap="onRegisterSubmit">完成注册</button>
+    </view>
+  </view>
+</view>

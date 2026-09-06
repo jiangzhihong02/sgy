@@ -1,0 +1,143 @@
+/* pages/feed/feed.wxss */
+.filter {
+  position: sticky;
+  top: 0;
+  background: #f6f7f9;
+  padding: 20rpx 24rpx 8rpx;
+  z-index: 20;
+}
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fchip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 16rpx 12rpx 0;
+}
+.arr {
+  font-size: 20rpx;
+  margin-left: 8rpx;
+  opacity: 0.6;
+}
+.place-txt {
+  max-width: 320rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.women-chip.active {
+  background: #e8f9ef;
+  color: #07c160;
+  border-color: #07c160;
+  font-weight: 600;
+}
+
+/* 遮罩与下拉面板 */
+.mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+}
+.panel {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  top: 100%;
+  margin-top: 4rpx;
+  z-index: 40;
+  padding: 8rpx 0;
+  max-height: 560rpx;
+  overflow-y: auto;
+  box-shadow: 0 8rpx 28rpx rgba(0, 0, 0, 0.12);
+}
+.panel-title {
+  padding: 16rpx 28rpx 8rpx;
+  font-size: 22rpx;
+  color: #8a9099;
+}
+.panel-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 28rpx;
+  font-size: 27rpx;
+  color: #1f2329;
+}
+.panel-opt.active {
+  color: #07c160;
+  font-weight: 600;
+}
+.panel-opt:active {
+  background: #f0f1f3;
+}
+
+/* 列表 */
+.ride-list {
+  padding-top: 8rpx;
+}
+.ride-mid {
+  margin: 16rpx 0 8rpx;
+}
+.time-col .time {
+  font-size: 40rpx;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.seats {
+  margin-left: 20rpx;
+}
+.avatar.mini {
+  width: 56rpx;
+  height: 56rpx;
+  font-size: 22rpx;
+}
+.avatar-ghost {
+  background: #f0f1f3;
+  color: #a5abb3;
+}
+.ride-foot {
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f1f3;
+}
+.note {
+  margin-left: 12rpx;
+  max-width: 300rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.btn-mini {
+  padding: 8rpx 32rpx;
+  font-size: 26rpx;
+  border-radius: 999rpx;
+}
+
+/* 邀请提示条 */
+.invite-banner {
+  margin: 4rpx 24rpx 20rpx;
+  background: #eafaf1;
+  border: 1rpx solid #c9f0d9;
+}
+.invite-text {
+  display: flex;
+  flex-direction: column;
+}
+.invite-from {
+  margin-top: 2rpx;
+}
+.invite-acts {
+  flex-shrink: 0;
+}
+.mini-btn {
+  font-size: 24rpx;
+  color: #07a55a;
+  padding: 8rpx 0 8rpx 20rpx;
+}
+.mini-btn.muted {
+  color: #8a9099;
+}

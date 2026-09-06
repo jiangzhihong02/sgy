@@ -1,0 +1,62 @@
+/* pages/admin/admin.wxss */
+.page {
+  padding-bottom: 60rpx;
+}
+.empty-sm {
+  text-align: center;
+  color: #8a9099;
+  padding: 40rpx 24rpx;
+}
+.rep-list {
+  margin: 0 24rpx 20rpx;
+}
+.rep-card {
+  margin-bottom: 16rpx;
+}
+.rep-meta {
+  margin-top: 8rpx;
+}
+.rep-note {
+  margin-top: 4rpx;
+}
+.rep-acts {
+  margin-top: 16rpx;
+}
+.rep-acts .act-half {
+  margin-right: 16rpx;
+  padding: 12rpx 0;
+  font-size: 26rpx;
+}
+.rep-acts .act-half:last-child {
+  margin-right: 0;
+}
+
+/* 字段行（复刻 create 页样式） */
+.field {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.field:last-child {
+  border-bottom: none;
+}
+.field-label {
+  width: 170rpx;
+  color: #4e545c;
+  flex-shrink: 0;
+}
+.field-value {
+  flex: 1;
+  color: #1f2329;
+}
+.time-big {
+  font-size: 38rpx;
+  font-weight: 700;
+}
+.cap-group {
+  flex-wrap: nowrap;
+}
+.cap-chip {
+  margin: 0 12rpx 0 0;
+}
