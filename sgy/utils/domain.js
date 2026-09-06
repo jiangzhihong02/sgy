@@ -1,6 +1,7 @@
 /**
- * 领域常量与线路目录（与 CONTEXT.md / docs/DESIGN.md 对齐）。
- * 后续线路目录改由云数据库 routes 下发，这里保留为骨架期的本地快照。
+ * 领域常量与显示助手。
+ * 线路目录（ROUTES）改由云数据库 routes 下发（见 utils/routes.js：拉 rides.routes、
+ * DB 为唯一来源）；本文件里的 ROUTES 仅作离线快照兜底，管理员增改线路后请以云端为准。
  */
 
 // 方向（面向用户的叫法：返校 = 从深圳去学校；离校 = 从学校回深圳/就近回家）
@@ -92,6 +93,11 @@ function statusView(id) {
   return STATUS_VIEW[id] || { label: id || "未知", cls: "tag-gray" };
 }
 
+/** 自报性别 → 头像框着色类名（蓝男 · 粉女 · 不填无框）。三端唯一来源。 */
+function frameCls(gender) {
+  return gender === "female" ? "avatar-female" : gender === "male" ? "avatar-male" : "";
+}
+
 module.exports = {
   DIRECTIONS,
   ROUTES,
@@ -103,4 +109,5 @@ module.exports = {
   fmtDate,
   departFromNow,
   dayLabel,
+  frameCls,
 };

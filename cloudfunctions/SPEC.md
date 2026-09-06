@@ -24,6 +24,7 @@
 - 举报（complaint）：kind 限 `gender_fake|lateness|absence`；同一(局,人)同类一人一次；同局 ≥2 名不同成员联名自动坐实并只扣一次。
 - rides 新增 action：`messages`（轻量拉消息）、`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。消息带 `type: text|image`（image=base64 data URI，单条 ≤200k 字符，每人每局 1 张）。
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
+- **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托，不再自带规则副本（先部署 rides 再部署 rideSweep）。
 
 ## 1. 集合与文档结构
 
@@ -80,7 +81,7 @@
 | `rideId` | string |
 | `byOpenid` | 上报人 |
 | `targetOpenid` | 被上报人 |
-| `kind` | `'no_show'`(爽约) \| `'false_report'`(乱标，仅管理员在申诉时使用) \| `'appeal'`(申诉) |
+| `kind` | `'gender_fake'` \| `'lateness'` \| `'absence'`（complaint 产生；联名 ≥2 自动坐实否则待复核）。`no_show/false_report/appeal` 为早期已下线流程的存量字段，仅供历史记录 |
 | `note` | string |
 | `status` | `'pending'` \| `'upheld'` \| `'dismissed'` |
 | `creditDelta` | 确认后应扣分值（结算用，见 §4） |
@@ -93,8 +94,8 @@ T_JOIN_CLOSE = 10 * 60_000     // T−10 停止加入
 T_FREE_EXIT  = 30 * 60_000     // T−30 自由退出/解散截止
 T_POLL_ASK   = 60 * 60_000     // T−60 人数轮询
 T_POLL_DUE   = 45 * 60_000     // T−45 轮询截止（未回默认接受）
-T_CHECKIN_GRACE = 10 * 60_000  // T+10 未到可标爽约
-T_SETTLE     = 120 * 60_000    // T+120 自动结算 done
+T_CHECKIN_GRACE = 10 * 60_000  // T+10 停止"我到了"签到
+T_SETTLE     = 60 * 60_000     // 上车后 1h 自动结算 done（此前为 2h，2026-09 定稿；唯一来源 rides/rules.js）
 ```
 
 ## 3. 拼车局状态机（rideSweep 定时推进 + 用户动作触发）
@@ -125,8 +126,8 @@ ongoing
   - 每位 **checkedInAt>0** 的成员 `credit +1`（封顶 120）。
   - 到点仍未 checkin 且未 leave 且未被手动移除的成员 → 记为爽约：直接 `credit −20`（确定无疑的情形，无需管理员），并把 openid 记入 `ride.noShowConfirmed`。
 - **leave 在 T−T_FREE_EXIT 之后**触发时同步扣 `−20`。
-- **签到后放鸽子**（checkedInAt>0 但实际没上车）：无法自动判定，走**成员举报 + 管理员复核**：举报 `kind:'no_show'` 置 pending，管理员 `resolveReport('uphold')` 时若该成员曾有 checkin → `−40`，否则 `−20`。
-- **乱标**：申诉成立则记 `false_report`，乱标者 `−10`。
+- **迟到/缺勤/性别不实**在局 `done` 后由同局成员 `complaint` 举报（性别不实随时可报）：≥2 人联名自动坐实取最重扣分一次，否则转管理员 `resolveReport` 复核（坐实按 §0b kind 定分；`gender_fake` 顺带清空性别）。
+- **签到后放鸽子 / 乱标申诉**等早期 `no_show/false_report/appeal` 流程已下线，存量字段不再新产生。
 - 信用更新统一收敛到 `applyCreditDelta(openid, delta)`（幂等安全，users 文档 update）。
 
 ## 5. 轮询（T−60 人数确认，MVP 确定性实现）
@@ -152,9 +153,13 @@ ongoing
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
 - `checkin`：入 `{ rideId }`。规则见 §3.6。
 - `respondPoll`：入 `{ rideId, accept }`。见 §5。
-- `reportNoShow`：入 `{ rideId, targetOpenid, note? }`。生成 pending report（需 rideId 同局成员、target 非本人、ride 已过 T+T_CHECKIN_GRACE 或该人已不可达）。
-- `reportGenderMismatch`：入 `{ rideId, targetOpenid, note? }`。生成 `kind:'gender_fake'` pending report（需同局成员、target 自报 female、非本人；坐实由管理员清空性别并 −20）。
-- `sendMessage`：入 `{ rideId, text }`。写 messages，需成员身份。
+- `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次，`gender_fake` 顺带清空目标性别），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。
+- `memberInfo` / `block`：成员资料（含信用/是否已标记）与"不与其乘车"标记。
+- `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
+- `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。
+- `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
+- `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
+- `__sweep`：由 rideSweep 定时触发调用的结算/状态推进（rides 文件夹内 `sweep.js`，数值以 §2 为准）。
 
 ### `user`（档案与信用管理）
 - `login`：入 `{ nickName, avatarUrl?, gender? }`。按 openid 惰性建档/更新，出 `{ user, isAdmin }`。

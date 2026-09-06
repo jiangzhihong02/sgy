@@ -103,6 +103,13 @@
     </view>
   </view>
 
+  <!-- 加载失败（区别于真没有局）：可重试 -->
+  <view wx:elif="{{loadErr}}" class="empty">
+    <view class="empty-title">加载失败</view>
+    <view class="small">没连上服务器，已自动重试中</view>
+    <view class="mini-btn" bindtap="onRetryFeed">立即重试</view>
+  </view>
+
   <!-- 空态 -->
   <view wx:else class="empty">
     <view class="empty-title">当前没有符合筛选的拼车局</view>

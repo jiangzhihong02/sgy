@@ -104,7 +104,7 @@
             <view wx:else class="tag tag-green act-half act-done">已签到 · 集合吧</view>
             <button class="btn btn-danger-ghost act-half" bindtap="onLeave">退出</button>
           </view>
-          <view wx:if="{{!meChecked}}" class="small muted act-tip">到点请点「我到了」；超时未到会被队友标记爽约</view>
+          <view wx:if="{{!meChecked}}" class="small muted act-tip">到点请点「我到了」；局结束仍未签到将按爽约自动扣信用分</view>
         </block>
       </block>
 
@@ -145,7 +145,7 @@
   <view wx:if="{{showMember}}" class="mp-mask" bindtap="closeMember"></view>
   <view wx:if="{{showMember && panel}}" class="mp-panel">
     <view class="row mp-head">
-      <view class="avatar mp-avatar {{panel.gender === 'female' ? 'avatar-female' : panel.gender === 'male' ? 'avatar-male' : ''}}">{{panel.avatarChar}}</view>
+      <view class="avatar mp-avatar {{panel.frame}}">{{panel.avatarChar}}</view>
       <view class="flex-1 mp-info">
         <view class="strong">{{panel.name}}</view>
         <view class="small muted">性别：{{panel.genderText}} · 信用分：{{panel.credit}}</view>

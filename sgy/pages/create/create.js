@@ -1,19 +1,20 @@
 // pages/create/create.js —— 发局（已接云 rides.create）
 // 返校 = 深圳→教大：选上车点（固定终点教大）；离校 = 教大→口岸/就近：选或自定义下车点。
 const api = require("../../utils/api.js");
-const { DIRECTIONS, ROUTES, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
+const routeSvc = require("../../utils/routes.js");
+const { DIRECTIONS, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
 
 function buildInOptions() {
-  return ROUTES.filter((r) => r.directionId === "in").map((r) => ({
-    routeId: r.id,
+  return routeSvc.get().filter((r) => r.directionId === "in").map((r) => ({
+    routeId: r.routeId,
     label: r.from,
     to: r.to,
   }));
 }
 function buildOutOptions() {
   // 预置 = 3 个口岸下车点；"自定义…"放在最后
-  return ROUTES.filter((r) => r.directionId === "out").map((r) => ({
-    routeId: r.id,
+  return routeSvc.get().filter((r) => r.directionId === "out").map((r) => ({
+    routeId: r.routeId,
     label: r.to,
     isCustom: false,
   }));
@@ -58,6 +59,24 @@ Page({
       timeStart: fmtTime(now + 31 * 60000),
     });
     this.applyDirection("in", true);
+    this.refreshRoutes();
+  },
+
+  // 线路目录以云端为准：拉到后重建下拉（保持当前方向，回退到首项/非自定义）
+  async refreshRoutes() {
+    await routeSvc.load();
+    const inOptions = buildInOptions();
+    const outOptions = buildOutOptions().concat([{ routeId: "", label: "自定义下车点", isCustom: true }]);
+    const patch = { inOptions, outOptions };
+    if (this.data.directionId === "in") {
+      patch.inIndex = 0;
+      patch.inLabel = inOptions[0] ? inOptions[0].label : "";
+    } else {
+      patch.outIndex = 0;
+      patch.destCustom = false;
+      patch.customDest = "";
+    }
+    this.setData(patch);
   },
 
   applyDirection(dir, init) {
@@ -123,7 +142,7 @@ Page({
     wx.showModal({
       title: "一局怎么算成立",
       content:
-        "按约定出发时间倒推：提前 1 小时还没满员时，全员确认是否按当前人数出发（没回复默认同意）；提前 30 分钟前都能自由退出、发起人可解散；提前 10 分钟停止加入，2 人及以上即成局，不满 2 人自动取消（不算爽约）；到点在上车点集合点「我到了」，超时 10 分钟还没到可被队友标记爽约。",
+        "最少 2 人成局，人数上限由你设（2–4）。按出发时间倒推：提前 1 小时未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 45 分钟）；提前 30 分钟前可自由退出、你可解散；提前 10 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，出发后 10 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。",
       showCancel: false,
     });
   },

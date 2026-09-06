@@ -1,7 +1,8 @@
 // pages/feed/feed.js —— Tab1 找局（云 rides.list + 本地筛选）
 // 筛选：方向(返校/离校/全部) · 上车点/下车点(下拉) · 还差几人(空位)
 const api = require("../../utils/api.js");
-const { ROUTES, statusView, dayLabel, departFromNow } = require("../../utils/domain.js");
+const routeSvc = require("../../utils/routes.js");
+const { statusView, dayLabel, departFromNow, frameCls } = require("../../utils/domain.js");
 
 const DIR_OPTIONS = [
   { id: "in", label: "返校" },
@@ -18,13 +19,13 @@ const CUSTOM = "__custom__";
 
 function inboundPlaces() {
   const seen = [];
-  ROUTES.filter((r) => r.directionId === "in").forEach((r) => {
+  routeSvc.get().filter((r) => r.directionId === "in").forEach((r) => {
     if (!seen.some((x) => x.id === r.from)) seen.push({ id: r.from, label: r.from });
   });
   return seen;
 }
 function outboundPlaces() {
-  const seen = ROUTES.filter((r) => r.directionId === "out").map((r) => ({ id: r.to, label: r.to }));
+  const seen = routeSvc.get().filter((r) => r.directionId === "out").map((r) => ({ id: r.to, label: r.to }));
   seen.push({ id: CUSTOM, label: "自定义下车点（其它香港地点）" });
   return seen;
 }
@@ -48,14 +49,34 @@ Page({
     rides: [],
     loading: true,
     loaded: false,
+    loadErr: false, // rides.list 拉取失败（区别于"真没有局"）
     invites: [],
   },
 
   onLoad() {
     this.refresh();
+    this.refreshRoutes();
   },
   onShow() {
     if (this.data.loaded) this.refresh();
+  },
+  // 线路目录以云端为准：拉到后重建当前方向的下拉；所选值若已不存在则回到"全部"
+  async refreshRoutes() {
+    const before = routeSvc.isLoaded();
+    await routeSvc.load();
+    if (routeSvc.isLoaded() && !before) {
+      const dir = this.data.selectedDir;
+      const opts = dir === "in" ? inboundPlaces() : dir === "out" ? outboundPlaces() : [];
+      const header = dir === "in" ? "上车点" : "下车点";
+      const keep = this.data.placeValue !== "all" && this.data.placeValue !== CUSTOM && opts.some((o) => o.id === this.data.placeValue);
+      this.setData({
+        placeOptions: opts,
+        placeHeader: header,
+        placeValue: keep ? this.data.placeValue : "all",
+        placeLabel: keep ? this.data.placeValue : dir === "in" ? "全部上车点" : "全部下车点",
+      });
+      this.render();
+    }
   },
   onPullDownRefresh() {
     this.refresh().finally(() => wx.stopPullDownRefresh());
@@ -66,10 +87,25 @@ Page({
 
   async refresh() {
     const res = await api.call("rides", { action: "list" });
-    this._rides = res.ok ? res.data.rides : [];
-    if (!res.ok) wx.showToast({ title: res.msg || "加载失败", icon: "none" });
+    if (!res.ok) {
+      // 失败不再伪装成"空列表"：置错误态（首屏可见）+ 自动重试一次（冷启动/刚重传云函数常见）
+      this.setData({ rides: [], loading: false, loaded: true, loadErr: true });
+      if (!this._retried) {
+        this._retried = true;
+        setTimeout(() => this.refresh(), 1500);
+      }
+      return;
+    }
+    this._rides = res.data.rides || [];
+    this._retried = false;
+    this.setData({ loadErr: false });
     this.render();
     this.loadInvites();
+  },
+  onRetryFeed() {
+    this._retried = false;
+    this.setData({ loading: true, loadErr: false });
+    this.refresh();
   },
 
   async loadInvites() {
@@ -186,7 +222,7 @@ Page({
                       k: i,
                       filled: true,
                       text: (m.name || "?").slice(0, 1),
-                      cls: m.gender === "female" ? "avatar-female" : m.gender === "male" ? "avatar-male" : "",
+                      cls: frameCls(m.gender),
                     }
                   : { k: i, filled: false, text: "" }
               );

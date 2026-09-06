@@ -2,7 +2,7 @@
 // 逻辑：显示"我参与的、尚未结束(recruiting/locked/ongoing)"的队伍聊天室。
 // 一个都没有 → 占位文案引导去组队；有一两个 → 切换聊天室直接看消息（最多两个：早上返校 ongoing + 晚上离校 recruiting 等）。
 const api = require("../../utils/api.js");
-const { statusView, fmtTime, dayLabel } = require("../../utils/domain.js");
+const { statusView, fmtTime, dayLabel, frameCls } = require("../../utils/domain.js");
 
 Page({
   data: {
@@ -72,7 +72,6 @@ Page({
     const res = await api.call("rides", { action: "detail", rideId });
     if (res.ok) {
       const d = res.data.ride;
-      const frameOf = (g) => (g === "female" ? "avatar-female" : g === "male" ? "avatar-male" : "");
       this._genderOf = {};
       (d.members || []).forEach((m) => (this._genderOf[m.openid] = m.gender || ""));
       this.applyMessages(d.messages || []);
@@ -82,14 +81,13 @@ Page({
   },
 
   applyMessages(msgs) {
-    const frameOf = (g) => (g === "female" ? "avatar-female" : g === "male" ? "avatar-male" : "");
     const list = (msgs || []).map((m) => {
       const t = m.text || "";
       const isImg = m.type === "image";
       const isDataImg = isImg && t.indexOf("data:") === 0; // 新 base64 图才渲染
       return {
         whoChar: (m.name || "?").slice(0, 1),
-        frame: frameOf(this._genderOf && this._genderOf[m.openid]),
+        frame: frameCls(this._genderOf && this._genderOf[m.openid]),
         name: m.name,
         at: fmtTime(m.createdAt),
         type: m.type || "text",
