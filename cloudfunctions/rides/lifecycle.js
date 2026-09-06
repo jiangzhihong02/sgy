@@ -115,8 +115,20 @@ async function join(event, openid) {
   const needReg = await ensureRegistered(openid);
   if (needReg) return needReg;
 
-  // 队伍里是否有我标记"不与其乘车"的人（blocks 集合缺失时降级为无提醒，不阻断加入）
   const existingIds = (ride.members || []).map((m) => m.openid);
+
+  // 先到者优先（入队否决）：局内任一成员标记过"不与其乘车"我 → 拒绝加入。
+  // 文案用"已满"托词（类似"对方正忙"），不暴露是谁/因何被拦。
+  if (existingIds.length) {
+    try {
+      const veto = await db.collection("blocks").where({ targetOpenid: openid, byOpenid: _.in(existingIds) }).count();
+      if (veto.total > 0) return fail("NOT_WELCOME", "这一队刚好已满员，试试别的队伍吧");
+    } catch (e) {
+      /* 集合缺失/未建索引时降级放行 */
+    }
+  }
+
+  // 队伍里是否有我标记"不与其乘车"的人（仅提醒，不阻断——我自己选择）
   let warnings = [];
   if (existingIds.length) {
     try {

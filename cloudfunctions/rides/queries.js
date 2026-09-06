@@ -1,6 +1,6 @@
 // queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 聊天拉取
 const { T_JOIN_CLOSE, T_FREE_EXIT, ACTIVE_STATUS, canCheckin } = require("./rules");
-const { db, _, ok, fail, getRide, getMember, recentMessages } = require("./db");
+const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf } = require("./db");
 
 const view = (r) => ({
   _id: r._id,
@@ -26,7 +26,11 @@ async function list(event, openid) {
   if (event.pickup) cond.from = event.pickup;
   if (event.date) cond.date = event.date;
   const res = await db.collection("rides").where(cond).orderBy("boardAt", "asc").limit(50).get();
-  const rides = (res.data || []).map((r) => ({
+  // 对我标过「不与其乘车」的人：隐藏我发起的局（ta 在找局里看不到；join 另有否决兜底）
+  let raw = res.data || [];
+  const blockers = await blockersOf(openid);
+  if (blockers.size) raw = raw.filter((r) => !blockers.has(r.hostOpenid));
+  const rides = raw.map((r) => ({
     ...view(r),
     membersBrief: (r.members || []).slice(0, r.capacity).map((m) => ({ name: m.name, gender: m.gender || "" })),
     mine: r.hostOpenid === openid,

@@ -108,6 +108,18 @@ async function recentMessages(rideId) {
     .reverse();
 }
 
+// 曾标记"不与其乘车"我的 openid 集合（我把这些人的 openid 标过；用于 hide：ta 找不到"我发起的局"）
+async function blockersOf(openid) {
+  const set = new Set();
+  try {
+    const res = await db.collection("blocks").where({ targetOpenid: openid }).get();
+    (res.data || []).forEach((b) => b.byOpenid && set.add(b.byOpenid));
+  } catch (e) {
+    /* 集合缺失/未建索引时降级为不隐藏 */
+  }
+  return set;
+}
+
 module.exports = {
   cloud,
   db,
@@ -122,6 +134,7 @@ module.exports = {
   getMember,
   getRide,
   findTimeConflict,
+  blockersOf,
   recentMessages,
   MSG_MAX,
 };
