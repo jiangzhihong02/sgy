@@ -28,7 +28,7 @@ const PARTICIPANT_STATUS = ["recruiting", "locked", "ongoing"]; // 可签到等�
 
 // —— 文本上限 ——
 const MSG_MAX = 200; // 文本消息长度
-const MSG_IMG_MAX = 200000; // 图片消息 = base64 data URI，单条字符上限
+const MSG_IMG_MAX = 500000; // 图片消息 = base64 data URI，单条字符上限（≈≤370KB 图；前端 q55→q30 两档压缩）
 const NOTE_MAX = 50; // 发起人备注长度
 
 /** 默认昵称随机生成：每人不同，注册时还可改（三个云函数的统一口径）。 */

@@ -59,6 +59,26 @@ Page({
   },
   onShow() {
     if (this.data.loaded) this.refresh();
+    this.startAutoRefresh();
+  },
+  onHide() {
+    this.stopAutoRefresh();
+  },
+  onUnload() {
+    this.stopAutoRefresh();
+  },
+  // 常驻找局页时每 10 秒轻量刷新：别人新发的局/人数变化不用切 Tab 也能看到
+  startAutoRefresh() {
+    this.stopAutoRefresh();
+    this._feedTimer = setInterval(() => {
+      if (this.data.openKey === "none") this.refresh(); // 下拉展开时不打断用户选择
+    }, 10000);
+  },
+  stopAutoRefresh() {
+    if (this._feedTimer) {
+      clearInterval(this._feedTimer);
+      this._feedTimer = null;
+    }
   },
   // 线路目录以云端为准：拉到后重建当前方向的下拉；所选值若已不存在则回到"全部"
   async refreshRoutes() {

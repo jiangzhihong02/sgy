@@ -4,6 +4,9 @@
 const api = require("../../utils/api.js");
 const { statusView, fmtTime, dayLabel, frameCls } = require("../../utils/domain.js");
 
+// 图片消息上限（与服务端 rides/rules.js 的 MSG_IMG_MAX 保持一致；q55→q30 两档压缩后仍超才拒）
+const IMG_MAX = 500000;
+
 Page({
   data: {
     rooms: [],
@@ -173,36 +176,43 @@ Page({
       },
     });
   },
+  // 压缩→base64→data URI：先 q55，仍超上限再 q30 压一档（都从原图压，避免二次压缩叠加损耗）
   processImage(filePath) {
-    wx.showLoading({ title: "压缩中", mask: true });
-    wx.compressImage({
-      src: filePath,
-      quality: 55,
-      success: (r) => {
-        const src = r.tempFilePath || filePath;
+    const compress = (quality) =>
+      new Promise((resolve) => {
+        wx.compressImage({
+          src: filePath,
+          quality,
+          success: (r) => resolve(r.tempFilePath || filePath),
+          fail: () => resolve(filePath), // 压不动就用原图，交给大小校验兜底
+        });
+      });
+    const toData = (src) =>
+      new Promise((resolve, reject) => {
         wx.getFileSystemManager().readFile({
           filePath: src,
           encoding: "base64",
-          success: (b) => {
-            wx.hideLoading();
-            const dataUri = "data:image/jpeg;base64," + b.data;
-            if (dataUri.length > 200000) {
-              wx.showToast({ title: "图片仍太大，换一张更小的", icon: "none" });
-              return;
-            }
-            this.sendImage(dataUri);
-          },
-          fail: () => {
-            wx.hideLoading();
-            wx.showToast({ title: "图片读取失败", icon: "none" });
-          },
+          success: (b) => resolve("data:image/jpeg;base64," + b.data),
+          fail: reject,
         });
-      },
-      fail: () => {
+      });
+
+    wx.showLoading({ title: "压缩中", mask: true });
+    compress(55)
+      .then(toData)
+      .then((uri) => (uri.length > IMG_MAX ? compress(30).then(toData) : uri))
+      .then((uri) => {
         wx.hideLoading();
-        wx.showToast({ title: "压缩失败", icon: "none" });
-      },
-    });
+        if (uri.length > IMG_MAX) {
+          wx.showToast({ title: "图片仍太大，请用 ≤300KB 的群二维码截图", icon: "none" });
+          return;
+        }
+        this.sendImage(uri);
+      })
+      .catch(() => {
+        wx.hideLoading();
+        wx.showToast({ title: "图片读取失败", icon: "none" });
+      });
   },
   async sendImage(dataUri) {
     const res = await api.call("rides", { action: "sendMessage", rideId: this.data.curRideId, text: dataUri, type: "image" });

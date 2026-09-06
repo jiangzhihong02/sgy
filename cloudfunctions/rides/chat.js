@@ -13,7 +13,7 @@ async function sendMessage(event, openid) {
   if (!text) return fail("EMPTY", "内容为空");
   if (isImage) {
     // 图片走 base64 存消息，不用云存储（免存储流量/权限）
-    if (text.length > MSG_IMG_MAX) return fail("TOO_BIG", "图片太大，请换张更小的（建议 ≤100KB）");
+    if (text.length > MSG_IMG_MAX) return fail("TOO_BIG", "图片太大，请换更小或更清晰的截图（群二维码建议裁剪后 ≤300KB）");
     const cnt = await db.collection("messages").where({ rideId: ride._id, openid, type: "image" }).count();
     if (cnt.total >= 1) return fail("IMG_LIMIT", "每人每局最多发 1 张图（建议发群二维码，队友长按保存后扫码加群）");
   }

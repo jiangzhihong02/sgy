@@ -56,9 +56,23 @@ async function detail(event, openid) {
     canCancel: ride.hostOpenid === openid && now < ride.boardAt - T_FREE_EXIT,
     isMember: !!me,
     isHost: ride.hostOpenid === openid,
+    blockedInRide: await blockedNamesIn(ride, openid), // 本局里被我标过「不与其乘车」的人（标记者可见横幅）
     messages: await recentMessages(ride._id),
   };
   return ok({ ride: d });
+}
+
+// 我在本局中标记过「不与其乘车」的成员（去重、排除自己、缺集合降级为空）
+async function blockedNamesIn(ride, openid) {
+  const ids = (ride.members || []).map((m) => m.openid).filter((o) => o && o !== openid);
+  if (!ids.length) return [];
+  try {
+    const blk = await db.collection("blocks").where({ byOpenid: openid, targetOpenid: _.in(ids) }).get();
+    const set = new Set((blk.data || []).map((b) => b.targetOpenid));
+    return (ride.members || []).filter((m) => set.has(m.openid)).map((m) => ({ openid: m.openid, name: m.name }));
+  } catch (e) {
+    return [];
+  }
 }
 
 async function rideMessages(event, openid) {

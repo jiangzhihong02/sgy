@@ -32,6 +32,7 @@ Page({
     panel: null, // { openid,name,gender,credit,blocked,frame }
     editingNote: false,
     noteDraft: "",
+    blockedRideText: "", // 本局里被我标过「不与其乘车」的人（标记者横幅）
   },
 
   onLoad(options) {
@@ -39,6 +40,30 @@ Page({
     this._openid = "";
     if (this._rideId) this.refresh();
     else this.setData({ errorMsg: "缺少局 ID", loaded: true });
+  },
+
+  // 详情页常驻时自动刷新：新人入队/人数变化/备注修改不用退出重进（成员浮层开着也不打断）
+  onShow() {
+    if (this.data.ride && !this.data.errorMsg) this.refresh();
+    this.startAutoRefresh();
+  },
+  onHide() {
+    this.stopAutoRefresh();
+  },
+  onUnload() {
+    this.stopAutoRefresh();
+  },
+  startAutoRefresh() {
+    this.stopAutoRefresh();
+    this._rideTimer = setInterval(() => {
+      if (this.data.ride && !this.data.errorMsg) this.refresh();
+    }, 6000);
+  },
+  stopAutoRefresh() {
+    if (this._rideTimer) {
+      clearInterval(this._rideTimer);
+      this._rideTimer = null;
+    }
   },
 
   onShareAppMessage() {
@@ -65,6 +90,7 @@ Page({
     const poll = d.poll || null;
     const meVoted = !!(poll && poll.active && poll.responses.some((x) => x.openid === this._openid));
     const pollResolved = !!(poll && !poll.active && poll.status === "accepted");
+    const blkNames = (d.blockedInRide || []).map((x) => x.name);
 
     this.setData({
       ride: {
@@ -98,8 +124,7 @@ Page({
       meNeedPoll: !!(poll && poll.active && !meVoted && d.isMember),
       pollAccepted: !!pollResolved,
       isDone: ["done", "cancelled", "failed"].includes(d.status),
-      showMember: false,
-      panel: null,
+      blockedRideText: blkNames.join("、"),
       loaded: true,
       errorMsg: "",
     });

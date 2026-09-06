@@ -4,6 +4,25 @@ const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { DIRECTIONS, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
 
+// 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
+const HOURS = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
+const MINS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+function timeIndexes(time) {
+  const parts = String(time || "00:00").split(":");
+  const hh = Math.max(0, Math.min(23, Number(parts[0]) || 0));
+  const mm = Number(parts[1]) || 0;
+  let mi = 0;
+  let best = 99;
+  MINS.forEach((s, i) => {
+    const d = Math.abs(Number(s) - mm);
+    if (d < best) {
+      best = d;
+      mi = i;
+    }
+  });
+  return [hh, mi];
+}
+
 function buildInOptions() {
   return routeSvc.get().filter((r) => r.directionId === "in").map((r) => ({
     routeId: r.routeId,
@@ -39,8 +58,12 @@ Page({
 
     time: "",
     date: "",
-    timeStart: "", // 时间选择器下限：选"今天"时为当前+31分钟，否则不限
+    timeStart: "", // 选"今天"时的下限（当前+31分钟），用于校验，不再用于原 time picker
     dateStart: fmtDate(Date.now()),
+    hourOptions: HOURS,
+    minuteOptions: MINS,
+    timeH: 0,
+    timeM: 0,
     capacity: 4,
     capacityRange: [2, 3, 4],
     note: "",
@@ -53,10 +76,14 @@ Page({
     this._today = fmtDate(now);
     // 默认时间：当前+40 分钟，向上取整到 5 分钟（避开已过去时刻）
     const rounded = Math.ceil((now + 40 * 60000) / 300000) * 300000;
+    const t = fmtTime(rounded);
+    const [hi, mi] = timeIndexes(t);
     this.setData({
       date: this._today,
-      time: fmtTime(rounded),
+      time: t,
       timeStart: fmtTime(now + 31 * 60000),
+      timeH: hi,
+      timeM: mi,
     });
     this.applyDirection("in", true);
     this.refreshRoutes();
@@ -115,8 +142,17 @@ Page({
     this.setData({ customDest: e.detail.value });
   },
 
-  onPickTime(e) {
-    this.setData({ time: e.detail.value });
+  // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）
+  onPickTimeM(e) {
+    const v = e.detail.value || [];
+    const hh = HOURS[v[0]] || "00";
+    const mm = MINS[v[1]] || "00";
+    const t = `${hh}:${mm}`;
+    if (this.data.date === this._today && this.data.timeStart && t < this.data.timeStart) {
+      wx.showToast({ title: "出发时间不能早于当前 31 分钟", icon: "none" });
+      return;
+    }
+    this.setData({ time: t, timeH: v[0], timeM: v[1] });
   },
   onPickDate(e) {
     const date = e.detail.value;
@@ -129,6 +165,10 @@ Page({
     } else {
       patch.timeStart = "";
     }
+    const final = patch.time || this.data.time;
+    const [hi, mi] = timeIndexes(final);
+    patch.timeH = hi;
+    patch.timeM = mi;
     this.setData(patch);
   },
   onCapacityTap(e) {
