@@ -84,8 +84,8 @@
     </view>
 
     <!-- 被标记者入队提醒（标记者本人可见；放行但提醒） -->
-    <view wx:if="{{isMember && blockedRideText}}" class="card no-margin" style="border-left: 8rpx solid #ff9f0a;">
-      <view class="small" style="color:#ff9f0a;">⚠️ 这一局有你标记过「不与其乘车」的人：{{blockedRideText}}</view>
+    <view wx:if="{{isMember && blockedRideText}}" class="card no-margin block-flag">
+      <view class="small block-flag-text">⚠️ 这一局有你标记过「不与其乘车」的人：{{blockedRideText}}</view>
       <view class="small muted">若需避开，请自行退出本局</view>
     </view>
 

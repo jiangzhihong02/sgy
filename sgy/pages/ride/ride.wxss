@@ -1,4 +1,10 @@
 /* pages/ride/ride.wxss */
+.block-flag {
+  border-left: 8rpx solid #ff9f0a;
+}
+.block-flag-text {
+  color: #ff9f0a;
+}
 .ride-hero {
   margin-top: 24rpx;
 }

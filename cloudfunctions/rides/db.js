@@ -108,7 +108,8 @@ async function recentMessages(rideId) {
     .reverse();
 }
 
-// 曾标记"不与其乘车"我的 openid 集合（我把这些人的 openid 标过；用于 hide：ta 找不到"我发起的局"）
+// 标记过"不与其乘车"我的 openid 集合 = 不想带我的人（byOpenid 标过 target=我）。
+// list 用它隐藏 "host ∈ 不想带我的人" 的局 → 对方发起的局对我不下发。
 async function blockersOf(openid) {
   const set = new Set();
   try {

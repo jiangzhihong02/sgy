@@ -26,7 +26,7 @@ async function list(event, openid) {
   if (event.pickup) cond.from = event.pickup;
   if (event.date) cond.date = event.date;
   const res = await db.collection("rides").where(cond).orderBy("boardAt", "asc").limit(50).get();
-  // 对我标过「不与其乘车」的人：隐藏我发起的局（ta 在找局里看不到；join 另有否决兜底）
+  // 先到者优先：隐藏"host 是 不想带我的人"发起的局（对方标过我，不希望我出现在他/她的局里；join 另有否决兜底）
   let raw = res.data || [];
   const blockers = await blockersOf(openid);
   if (blockers.size) raw = raw.filter((r) => !blockers.has(r.hostOpenid));
