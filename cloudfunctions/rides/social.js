@@ -71,20 +71,44 @@ async function complaint(event, openid) {
     },
   });
 
-  // 联名坐实：同一局内 ≥2 名不同成员举报同一人 → 自动坐实并扣分一次
+  // 联名坐实：同一局内 ≥2 名不同成员举报同一人 → 自动坐实并扣分一次。
+  // 性别不实走分级：L1(单次 2 人)=清空性别可重填；L2(单局 ≥3 人 或 累计 ≥2 次坐实)=
+  // 反推为另一性别并锁死(仅管理员可改)。已锁定者不再被此路径改动。
   const after = await db.collection("reports").where({ rideId: ride._id, targetOpenid: event.targetOpenid, status: "pending" }).get();
   const list = after.data || [];
   const reporters = new Set(list.map((x) => x.byOpenid));
   if (reporters.size >= 2) {
     const worst = Math.min(...list.map((x) => KIND_DELTA[x.kind] || 0));
-    if (list.some((x) => x.kind === "gender_fake")) {
-      await db.collection("users").where({ openid: event.targetOpenid }).update({ data: { gender: "", updatedAt: Date.now() } });
+    const gf = list.filter((x) => x.kind === "gender_fake");
+    let genderAction = "none";
+    if (gf.length) {
+      const u = await findUser(event.targetOpenid);
+      const g = u ? u.gender || "" : "";
+      const locked = !!(u && u.genderLocked);
+      const nextCount = (u && u.genderFakeCount ? u.genderFakeCount : 0) + 1;
+      if (locked) {
+        genderAction = "locked"; // 已锁定：不再改（也无需再扣性别路径）
+      } else if (g) {
+        const gfReporters = new Set(gf.map((x) => x.byOpenid));
+        const escalate = gfReporters.size >= 3 || nextCount >= 2;
+        const upd = { genderFakeCount: nextCount, updatedAt: Date.now() };
+        if (escalate) {
+          upd.gender = g === "male" ? "female" : "male"; // 反推为正确性别
+          upd.genderLocked = upd.gender; // 锁死，仅管理员可改
+          genderAction = "switched";
+        } else {
+          upd.gender = ""; // L1：清空、可重填
+          genderAction = "cleared";
+        }
+        await db.collection("users").where({ openid: event.targetOpenid }).update({ data: upd });
+      }
+      // g 为空（本就没填）时不动 gender
     }
     const credit = await applyCreditDelta(event.targetOpenid, worst);
     for (const rep of list) {
       await db.collection("reports").doc(rep._id).update({ data: { status: "upheld", creditDelta: worst, resolvedAt: Date.now() } });
     }
-    return ok({ reported: true, auto: true, targetCredit: credit });
+    return ok({ reported: true, auto: true, targetCredit: credit, genderAction });
   }
   return ok({ reported: true, auto: false });
 }

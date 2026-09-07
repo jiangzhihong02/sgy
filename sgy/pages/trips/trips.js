@@ -5,7 +5,7 @@ const { statusView, fmtTime } = require("../../utils/domain.js");
 Page({
   data: {
     segs: [
-      { id: "ongoing", label: "进行中" },
+      { id: "ongoing", label: "未完成" },
       { id: "done", label: "历史" },
     ],
     seg: "ongoing",

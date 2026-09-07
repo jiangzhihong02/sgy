@@ -26,6 +26,8 @@ async function ensureUser(openid) {
     nickName: randNick(),
     avatarUrl: "",
     gender: "",
+    genderLocked: "",
+    genderFakeCount: 0,
     phoneVerified: false,
     registered: false, // 游客可浏览；注册（填昵称）后才能参与拼车
     credit: 100,
@@ -51,6 +53,8 @@ const publicUser = (u) => ({
   nickName: u.nickName,
   avatarUrl: u.avatarUrl,
   gender: u.gender,
+  genderLocked: u.genderLocked || "", // ""=未锁；male/female=已核实锁定的性别（不可自改）
+  genderFakeCount: u.genderFakeCount || 0,
   phoneVerified: u.phoneVerified,
   registered: !!u.registered,
   credit: u.credit,
@@ -62,7 +66,7 @@ async function login(event, openid) {
   const patch = { updatedAt: Date.now() };
   if (typeof event.nickName === "string" && event.nickName.trim()) patch.nickName = event.nickName.trim().slice(0, 20);
   if (typeof event.avatarUrl === "string") patch.avatarUrl = event.avatarUrl;
-  if (["female", "male"].includes(event.gender)) patch.gender = event.gender; // 自报
+  if (["female", "male"].includes(event.gender) && !u.genderLocked) patch.gender = event.gender; // 自报；锁定性别不可改
   if (Object.keys(patch).length > 1) {
     await db.collection("users").where({ openid }).update({ data: patch });
     Object.assign(u, patch);
@@ -81,7 +85,8 @@ async function register(event, openid) {
   const nick = String(event.nickName || "").trim().slice(0, 12);
   if (!nick) return fail("BAD_NICK", "请填写昵称");
   const patch = { nickName: nick, registered: true, updatedAt: Date.now() };
-  if (["female", "male"].includes(event.gender)) patch.gender = event.gender;
+  // 性别自报；已被系统锁定的性别不可改（genderLocked 见分级纠错）
+  if (["female", "male"].includes(event.gender) && !u.genderLocked) patch.gender = event.gender;
   await db.collection("users").where({ openid }).update({ data: patch });
   Object.assign(u, patch);
   return ok({ user: publicUser(u), isAdmin: isAdmin(openid) });
@@ -126,9 +131,20 @@ async function resolveReport(event, openid) {
     const DELTA = { gender_fake: -20, absence: -20, lateness: -10, no_show: -20 };
     const delta = Object.prototype.hasOwnProperty.call(DELTA, report.kind) ? DELTA[report.kind] : -20;
     if (report.kind === "gender_fake") {
-      await db.collection("users").where({ openid: report.targetOpenid }).update({
-        data: { gender: "", updatedAt: Date.now() },
-      });
+      // 与 rides 联名自动坐实同一套分级：累计坐实 ≥2 次 → 反推为另一性别并锁定；否则清空可重填
+      const t = await ensureUser(report.targetOpenid);
+      const g = t.gender || "";
+      if (!t.genderLocked && g) {
+        const nextCount = (t.genderFakeCount || 0) + 1;
+        const upd = { genderFakeCount: nextCount, updatedAt: Date.now() };
+        if (nextCount >= 2) {
+          upd.gender = g === "male" ? "female" : "male";
+          upd.genderLocked = upd.gender;
+        } else {
+          upd.gender = "";
+        }
+        await db.collection("users").where({ openid: report.targetOpenid }).update({ data: upd });
+      }
     }
     let next = null;
     if (delta !== 0) next = await applyCreditDelta(report.targetOpenid, delta);
@@ -157,6 +173,20 @@ async function banUser(event, openid) {
   return ok({ bannedUntil });
 }
 
+// 管理员：纠正/解锁性别（误锁时用）。gender='male|female|'，lock=false 解锁为可改。
+async function adminSetGender(event, openid) {
+  if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
+  const targetOpenid = event.targetOpenid;
+  if (!targetOpenid) return fail("BAD_TARGET", "缺少对象");
+  const g = ["", "male", "female"].includes(event.gender) ? event.gender : "";
+  const lock = event.lock !== false;
+  const data = { gender: g, updatedAt: Date.now() };
+  if (g && lock) data.genderLocked = g; // 设值并锁定
+  else data.genderLocked = ""; // 纠正或解锁
+  await db.collection("users").where({ openid: targetOpenid }).update({ data });
+  return ok({ gender: g, genderLocked: data.genderLocked });
+}
+
 exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext();
   if (!OPENID) return fail("NO_AUTH", "无法识别用户");
@@ -174,6 +204,8 @@ exports.main = async (event = {}) => {
         return await resolveReport(event, OPENID);
       case "banUser":
         return await banUser(event, OPENID);
+      case "adminSetGender":
+        return await adminSetGender(event, OPENID);
       default:
         return fail("NO_ACTION", "未知 action");
     }

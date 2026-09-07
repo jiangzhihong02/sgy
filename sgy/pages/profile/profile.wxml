@@ -10,20 +10,24 @@
           <text wx:if="{{user.registered}}" class="tag tag-green">已注册</text>
           <text wx:else class="tag tag-orange">游客</text>
         </view>
-        <view class="small muted">{{user.registered ? '点我可修改昵称/性别' : '点击完善资料（填昵称）后才能参与拼车'}}</view>
+        <view class="small muted">{{user.sub}}</view>
       </view>
       <text wx:if="{{!user.registered}}" class="muted small">›</text>
     </view>
   </view>
 
-  <!-- 性别（请如实填写） -->
+  <!-- 性别（可自报；已被系统核实锁定时不可改） -->
   <view class="card gender-card">
-    <view class="row-between">
+    <view wx:if="{{!user.genderLocked}}" class="row-between">
       <text class="small muted">性别（请如实填写）</text>
       <view class="chips">
         <view wx:for="{{genders}}" wx:key="id" class="chip chip-sm {{user.gender === item.id ? 'active' : ''}}"
           data-id="{{item.id}}" bindtap="onPickGender">{{item.label}}</view>
       </view>
+    </view>
+    <view wx:else class="row-between">
+      <text class="small muted">性别（已核实，不可改）</text>
+      <text class="tag tag-gray">{{user.gender === 'female' ? '女' : user.gender === 'male' ? '男' : '未填'}}</text>
     </view>
   </view>
 

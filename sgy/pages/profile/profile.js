@@ -7,7 +7,7 @@ const nickSuggestion = () => `${WORDS[Math.floor(Math.random() * WORDS.length)]}
 
 Page({
   data: {
-    user: { nickName: "我", gender: "", registered: false, avatarChar: "我", phoneVerified: false },
+    user: { nickName: "我", gender: "", genderLocked: "", registered: false, avatarChar: "我", phoneVerified: false, sub: "点击完善资料（填昵称）后才能参与拼车" },
     credit: 100,
     bannedUntil: 0,
     isAdmin: false,
@@ -41,8 +41,14 @@ Page({
     const res = await api.call("user", { action: "me" });
     if (res.ok) {
       const u = res.data.user;
+      const locked = !!u.genderLocked;
+      const sub = u.registered
+        ? locked
+          ? "性别已核实 · 仅昵称可改"
+          : "点我可修改昵称/性别"
+        : "点击完善资料（填昵称）后才能参与拼车";
       this.setData({
-        user: { ...this.data.user, ...u, avatarChar: (u.nickName || "我").slice(0, 1) },
+        user: { ...this.data.user, ...u, avatarChar: (u.nickName || "我").slice(0, 1), sub },
         credit: u.credit,
         bannedUntil: u.bannedUntil || 0,
         isAdmin: !!res.data.isAdmin,
@@ -52,7 +58,10 @@ Page({
 
   onTapUser() {
     if (this.data.user.registered) {
-      wx.showToast({ title: "已注册，昵称/性别可直接改", icon: "none" });
+      wx.showToast({
+        title: this.data.user.genderLocked ? "已注册；性别已核实不可改，昵称可直接改" : "已注册，昵称/性别可直接改",
+        icon: "none",
+      });
       return;
     }
     this.openRegister();

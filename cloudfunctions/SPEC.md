@@ -37,6 +37,8 @@
 | `openid` | string，唯一 |
 | `nickName` / `avatarUrl` | string，展示用（头像昵称填写能力所得） |
 | `gender` | string `''` \| `'female'` \| `'male'`（**自报**，不可信来源） |
+| `genderLocked` | string `''`(未锁) \| `'male'`\|`'female'`（性别不实分级纠错 L2 反推真值后锁定的值；锁定后不可自改，仅管理员 `adminSetGender`） |
+| `genderFakeCount` | number，性别不实坐实累计次数（L2 触发②：≥2） |
 | `phoneVerified` | bool |
 | `credit` | number，初始 100，封顶 120 |
 | `createdAt` / `updatedAt` | number ms |
@@ -155,7 +157,7 @@ ongoing
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
 - `checkin`：入 `{ rideId }`。规则见 §3.6。
 - `respondPoll`：入 `{ rideId, accept }`。见 §5。
-- `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次，`gender_fake` 顺带清空目标性别），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。
+- `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
 - `memberInfo` / `block`：成员资料（含信用/是否已标记）与"不与其乘车"标记。
 - `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
 - `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。
@@ -168,6 +170,7 @@ ongoing
 - `adminList`：出待处理 reports + 用户信用列表（需管理员）。
 - `resolveReport`：入 `{ reportId, action: 'uphold'|'dismiss' }`（需管理员）。按 §4 应用扣分并置状态；`gender_fake` 坐实另需清空目标性别。
 - `banUser`：入 `{ openid, days }`（需管理员，信用清零用）。
+- `adminSetGender`：入 `{ targetOpenid, gender: male|female|'', lock?: bool }`（需管理员）。`gender` 非空且 `lock!==false` → 设值并锁定；否则纠正/解锁（`genderLocked=''`）。用于性别误锁纠正。
 - **管理员判定**：`ADMIN_OPENIDS = [ 'wx81d8e8ae2b8ff3df 环境所属作者 openid（部署时填入）' ]`——上线前把作者 openid 填进该数组。
 
 ### `routeInit`（一次性初始化，手动调用一次）

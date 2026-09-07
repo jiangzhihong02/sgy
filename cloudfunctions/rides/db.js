@@ -41,6 +41,8 @@ async function ensureUser(openid) {
       nickName: randNick(),
       avatarUrl: "",
       gender: "",
+      genderLocked: "",
+      genderFakeCount: 0,
       phoneVerified: false,
       registered: false,
       credit: CREDIT_DEFAULT,
