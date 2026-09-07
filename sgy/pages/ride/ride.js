@@ -1,7 +1,9 @@
 // pages/ride/ride.js —— 局详情（云 rides.detail 等）
 // 聊天已统一搬到「聊天室」Tab：本页不再内嵌聊天，成员点「去聊天室」跳转。
 const api = require("../../utils/api.js");
-const { statusView, dayLabel, departFromNow, frameCls } = require("../../utils/domain.js");
+const { cardOf, avatarChar } = require("../../utils/rideView.js");
+const { dayLabel, frameCls } = require("../../utils/domain.js");
+const autopoll = require("../../utils/autopoll.js");
 
 // 基本规则（面向用户的中文表述，避免 T−30 之类黑话；与 rides 服务端实现一致）
 const RULES_ROWS = [
@@ -38,32 +40,20 @@ Page({
   onLoad(options) {
     this._rideId = options && options.id;
     this._openid = "";
+    // 详情页常驻时自动刷新：新人入队/人数变化/备注修改不用退出重进（加载到内容且无错误才刷）
+    this._ridePoll = autopoll({ intervalMs: 6000, idleWhile: () => !!this.data.ride && !this.data.errorMsg, tick: () => this.refresh() });
     if (this._rideId) this.refresh();
     else this.setData({ errorMsg: "缺少局 ID", loaded: true });
   },
-
-  // 详情页常驻时自动刷新：新人入队/人数变化/备注修改不用退出重进（成员浮层开着也不打断）
   onShow() {
     if (this.data.ride && !this.data.errorMsg) this.refresh();
-    this.startAutoRefresh();
+    this._ridePoll.start();
   },
   onHide() {
-    this.stopAutoRefresh();
+    this._ridePoll.stop();
   },
   onUnload() {
-    this.stopAutoRefresh();
-  },
-  startAutoRefresh() {
-    this.stopAutoRefresh();
-    this._rideTimer = setInterval(() => {
-      if (this.data.ride && !this.data.errorMsg) this.refresh();
-    }, 6000);
-  },
-  stopAutoRefresh() {
-    if (this._rideTimer) {
-      clearInterval(this._rideTimer);
-      this._rideTimer = null;
-    }
+    this._ridePoll.stop();
   },
 
   onShareAppMessage() {
@@ -76,7 +66,7 @@ Page({
 
   async refresh() {
     const [meRes, res] = await Promise.all([
-      api.call("user", { action: "me" }),
+      api.call("rides", { action: "me" }),
       api.call("rides", { action: "detail", rideId: this._rideId }),
     ]);
     if (meRes.ok) this._openid = meRes.data.user.openid;
@@ -85,7 +75,7 @@ Page({
       return;
     }
     const d = res.data.ride;
-    const sv = statusView(d.status);
+    const c = cardOf(d); // 卡片展示唯一派生（routeLabel/时间/座位/状态标签）
     const me = d.members.find((m) => m.openid === this._openid);
     const poll = d.poll || null;
     const meVoted = !!(poll && poll.active && poll.responses.some((x) => x.openid === this._openid));
@@ -95,13 +85,13 @@ Page({
     this.setData({
       ride: {
         _id: d._id,
-        routeLabel: d.routeLabel,
+        routeLabel: c.routeLabel,
         boardAt: d.boardAt,
-        dayText: dayLabel(d.boardAt),
-        departText: departFromNow(d.boardAt),
-        statusLabel: sv.label,
-        statusCls: sv.cls,
-        seatText: `${d.memberCount}/${d.capacity} 人`,
+        dayText: c.dayText,
+        departText: c.departText,
+        statusLabel: c.statusLabel,
+        statusCls: c.statusCls,
+        seatText: c.seatText,
         note: d.note,
         memberCount: d.memberCount,
         capacity: d.capacity,
@@ -111,7 +101,7 @@ Page({
           name: m.name,
           role: m.role,
           frame: frameCls(m.gender),
-          avatarChar: (m.name || "?").slice(0, 1),
+          avatarChar: avatarChar(m.name),
           checked: m.checkedInAt > 0,
           isMe: m.openid === this._openid,
         })),
@@ -263,7 +253,7 @@ Page({
         ...m,
         name: m.name || name,
         genderText: m.gender === "female" ? "女" : m.gender === "male" ? "男" : "未填",
-        avatarChar: ((m.name || name) || "?").slice(0, 1),
+        avatarChar: avatarChar(m.name || name),
         frame: frameCls(m.gender),
         isMe,
       },

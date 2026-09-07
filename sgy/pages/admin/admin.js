@@ -33,7 +33,7 @@ Page({
   },
 
   async loadPending() {
-    const res = await api.call("user", { action: "adminPending" });
+    const res = await api.call("rides", { action: "adminPending" });
     if (res.ok) this.setData({ reports: res.data.reports || [] });
   },
 
@@ -45,7 +45,7 @@ Page({
       confirmText: "坐实扣分",
       success: async (m) => {
         if (!m.confirm) return;
-        const r = await api.call("user", { action: "resolveReport", reportId: id, action: "uphold" });
+        const r = await api.call("rides", { action: "resolveReport", reportId: id, action: "uphold" });
         wx.showToast({ title: r.ok ? "已坐实并扣分" : r.msg || "失败", icon: "none" });
         this.loadPending();
       },
@@ -54,7 +54,7 @@ Page({
 
   onDismiss(e) {
     const { id } = e.currentTarget.dataset;
-    api.call("user", { action: "resolveReport", reportId: id, action: "dismiss" }).then((r) => {
+    api.call("rides", { action: "resolveReport", reportId: id, action: "dismiss" }).then((r) => {
       wx.showToast({ title: r.ok ? "已驳回" : r.msg || "失败", icon: "none" });
       this.loadPending();
     });

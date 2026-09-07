@@ -1,6 +1,7 @@
 // cloudfunctions/rides —— 拼车局主业务（入口 = 纯 action 路由表）
 // 业务按子领域拆分到本文件夹内：rules(纯规则) / db(共享数据守卫) / lifecycle / queries /
-// chat / social / invites / admin / sweep。契约见 SPEC.md；改规则改 rules.js。
+// chat / social / invites / admin / sweep / gender(性别分级) / account(原独立 user 云函数并入)。
+// 契约见 SPEC.md；改规则改 rules.js。
 const { cloud, fail } = require("./db");
 const lifecycle = require("./lifecycle");
 const queries = require("./queries");
@@ -9,10 +10,11 @@ const social = require("./social");
 const invites = require("./invites");
 const admin = require("./admin");
 const sweep = require("./sweep");
+const account = require("./account");
 
 // action → 处理函数。__sweep 由 rideSweep 云函数每分钟触发调用（见 cloudfunctions/rideSweep）。
 const HANDLERS = {
-  // 生命周期
+  // 拼车局生命周期
   create: lifecycle.create,
   join: lifecycle.join,
   leave: lifecycle.leave,
@@ -26,7 +28,7 @@ const HANDLERS = {
   detail: queries.detail,
   messages: queries.rideMessages,
   routes: queries.routeList,
-  // 聊天
+  // 局内聊天
   sendMessage: chat.sendMessage,
   // 局内成员间
   memberInfo: social.memberInfo,
@@ -37,6 +39,14 @@ const HANDLERS = {
   inviteList: invites.inviteList,
   inviteRespond: invites.respondInvite,
   reinvite: invites.reinvite,
+  // 用户档案 / 信用 / 管理员复核（并入自原 user 云函数，客户端 call 本函数即可）
+  login: account.login,
+  me: account.me,
+  register: account.register,
+  adminPending: account.adminPending,
+  resolveReport: account.resolveReport,
+  banUser: account.banUser,
+  adminSetGender: account.adminSetGender,
   // 管理员联调
   adminSeedDone: admin.adminSeedDone,
   adminReset: admin.adminReset,

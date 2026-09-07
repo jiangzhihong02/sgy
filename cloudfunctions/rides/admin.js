@@ -1,12 +1,10 @@
-// admin.js —— 管理员联调辅助（造已完成局）。正式后台复核在 user 云函数 adminPending/resolveReport。
-// ADMIN_OPENIDS 与 cloudfunctions/user/index.js 保持一致。
-const { db, _, ok, fail, ensureUser } = require("./db");
-
-const ADMIN_OPENIDS = ["oDhfnxajsWOYp-ak-V7Vmnm953q0"];
+// admin.js —— 管理员联调辅助（造已完成局 / 清空局数据）。正式后台复核在 account.js（adminPending/resolveReport）。
+// 管理员名单唯一来源 db.js（isAdmin），不再各自持一份。
+const { db, _, ok, fail, ensureUser, isAdmin } = require("./db");
 
 // 联调辅助：管理员为给定 openid 们创建一条"已完成"的共享拼车局（含示例消息），用于测试历史/举报/再约
 async function adminSeedDone(event, openid) {
-  if (!ADMIN_OPENIDS.includes(openid)) return fail("NO_ADMIN", "无管理员权限");
+  if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const list = (event.members || []).filter((x) => x && typeof x === "string");
   if (list.length < 2) return fail("BAD_MEMBERS", "至少传两个成员 openid");
   const now = Date.now();
@@ -58,7 +56,7 @@ async function adminSeedDone(event, openid) {
 // 联调清理：清空 局数据域（rides / messages / invites / reports），保留 users 与 routes。
 // 管理员专用；内测重测前使用。
 async function adminReset(event, openid) {
-  if (!ADMIN_OPENIDS.includes(openid)) return fail("NO_ADMIN", "无管理员权限");
+  if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const removed = {};
   for (const c of ["reports", "invites", "messages", "rides"]) {
     let n = 0;

@@ -1,6 +1,7 @@
 // social.js —— 局内成员间动作：查看资料 / 标记不与其乘车 / 举报（性别不实·迟到·缺勤）
 const { KIND_DELTA } = require("./rules");
 const { db, ok, fail, findUser, applyCreditDelta, getMember, getRide } = require("./db");
+const { applyGenderFake } = require("./gender");
 
 const COMPLAINT_KINDS = ["gender_fake", "lateness", "absence"];
 
@@ -72,9 +73,7 @@ async function complaint(event, openid) {
   });
 
   // 联名坐实：同一局内 ≥2 名不同成员举报同一人 → 自动坐实并扣分一次。
-  // 性别不实走分级：L1(单次 2 人)=清空性别可重填；L2(单局 ≥3 人 或 累计 ≥2 次坐实)=
-  // 反推为另一性别并锁死(仅管理员可改)。已锁定者不再被此路径改动。
-  // ⚠ 同套分级逻辑在 cloudfunctions/user/index.js 的 resolveReport（管理员坐实），改动必须两处同步。
+  // 性别不实的分级（L1 清空 / L2 反推锁定）收敛在 gender.js，管理员坐实路径（account.resolveReport）共用。
   const after = await db.collection("reports").where({ rideId: ride._id, targetOpenid: event.targetOpenid, status: "pending" }).get();
   const list = after.data || [];
   const reporters = new Set(list.map((x) => x.byOpenid));
@@ -83,27 +82,8 @@ async function complaint(event, openid) {
     const gf = list.filter((x) => x.kind === "gender_fake");
     let genderAction = "none";
     if (gf.length) {
-      const u = await findUser(event.targetOpenid);
-      const g = u ? u.gender || "" : "";
-      const locked = !!(u && u.genderLocked);
-      const nextCount = (u && u.genderFakeCount ? u.genderFakeCount : 0) + 1;
-      if (locked) {
-        genderAction = "locked"; // 已锁定：不再改（也无需再扣性别路径）
-      } else if (g) {
-        const gfReporters = new Set(gf.map((x) => x.byOpenid));
-        const escalate = gfReporters.size >= 3 || nextCount >= 2;
-        const upd = { genderFakeCount: nextCount, updatedAt: Date.now() };
-        if (escalate) {
-          upd.gender = g === "male" ? "female" : "male"; // 反推为正确性别
-          upd.genderLocked = upd.gender; // 锁死，仅管理员可改
-          genderAction = "switched";
-        } else {
-          upd.gender = ""; // L1：清空、可重填
-          genderAction = "cleared";
-        }
-        await db.collection("users").where({ openid: event.targetOpenid }).update({ data: upd });
-      }
-      // g 为空（本就没填）时不动 gender
+      const gfReporters = new Set(gf.map((x) => x.byOpenid));
+      genderAction = await applyGenderFake(event.targetOpenid, gfReporters.size);
     }
     const credit = await applyCreditDelta(event.targetOpenid, worst);
     for (const rep of list) {

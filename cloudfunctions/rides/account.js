@@ -1,52 +1,10 @@
-// cloudfunctions/user —— 用户档案 + 信用 + 管理员复核
-// 契约见 SPEC.md §6 user。
-// TODO(上线前)：把作者 openid 填进 ADMIN_OPENIDS（在开发者工具里用 getOpenId 云函数或 console 查一次即可）。
-const cloud = require("wx-server-sdk");
-cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
-const db = cloud.database();
-const _ = db.command;
-
-const CREDIT_CAP = 120;
-const ADMIN_OPENIDS = ["oDhfnxajsWOYp-ak-V7Vmnm953q0"]; // 内测期作者本人；填入后才有 代发种子局/复核 权限
-
-const ok = (data) => ({ ok: true, data });
-const fail = (err, msg) => ({ ok: false, err, msg });
-
-const isAdmin = (openid) => ADMIN_OPENIDS.includes(openid);
-
-// 随机默认昵称：保证每个用户至少"默认名不同"（注册时可再改名）
-const randNick = () => `拼友${Math.floor(1000 + Math.random() * 9000)}`;
-
-async function ensureUser(openid) {
-  const res = await db.collection("users").where({ openid }).limit(1).get();
-  if (res.data[0]) return res.data[0];
-  const now = Date.now();
-  const data = {
-    openid,
-    nickName: randNick(),
-    avatarUrl: "",
-    gender: "",
-    genderLocked: "",
-    genderFakeCount: 0,
-    phoneVerified: false,
-    registered: false, // 游客可浏览；注册（填昵称）后才能参与拼车
-    credit: 100,
-    bannedUntil: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-  const add = await db.collection("users").add({ data });
-  return { _id: add._id, ...data };
-}
-
-async function applyCreditDelta(openid, delta) {
-  const u = await ensureUser(openid);
-  const next = Math.max(0, Math.min(CREDIT_CAP, u.credit + delta));
-  const patch = { credit: next, updatedAt: Date.now() };
-  if (next < 60) patch.bannedUntil = Date.now() + 7 * 24 * 3600 * 1000;
-  await db.collection("users").where({ openid }).update({ data: patch });
-  return next;
-}
+// account.js —— 用户档案 / 信用 / 管理员复核
+// 原独立云函数 cloudfunctions/user 已并入本可部署单元（入口见 index.js），本文件不再自带
+// ensureUser/applyCreditDelta/randNick/KIND_DELTA/ADMIN_OPENIDS 副本，全部复用 db.js/rules.js；
+// 性别不实分级与 social.js 共用 gender.js（见 SPEC §0b）。契约见 SPEC.md §6。
+const { db, ok, fail, ensureUser, applyCreditDelta, isAdmin } = require("./db");
+const { KIND_DELTA } = require("./rules");
+const { applyGenderFake } = require("./gender");
 
 const publicUser = (u) => ({
   openid: u.openid,
@@ -127,25 +85,11 @@ async function resolveReport(event, openid) {
   if (report.status !== "pending") return fail("RESOLVED", "该上报已处理");
 
   if (action === "uphold") {
-    // 按上报类型定扣分：性别不实/缺勤 −20、迟到 −10、爽约 −20、其它 0
-    const DELTA = { gender_fake: -20, absence: -20, lateness: -10, no_show: -20 };
-    const delta = Object.prototype.hasOwnProperty.call(DELTA, report.kind) ? DELTA[report.kind] : -20;
+    // 按上报类型定扣分：性别不实/缺勤 −20、迟到 −10（唯一来源 rules.js KIND_DELTA；无记录的老 no_show 兜底 −20）
+    const delta = Object.prototype.hasOwnProperty.call(KIND_DELTA, report.kind) ? KIND_DELTA[report.kind] : -20;
     if (report.kind === "gender_fake") {
-      // 与 rides 联名自动坐实同一套分级：累计坐实 ≥2 次 → 反推为另一性别并锁定；否则清空可重填。
-      // ⚠ 同套分级逻辑在 cloudfunctions/rides/social.js 的 complaint（联名自动坐实），改动必须两处同步。
-      const t = await ensureUser(report.targetOpenid);
-      const g = t.gender || "";
-      if (!t.genderLocked && g) {
-        const nextCount = (t.genderFakeCount || 0) + 1;
-        const upd = { genderFakeCount: nextCount, updatedAt: Date.now() };
-        if (nextCount >= 2) {
-          upd.gender = g === "male" ? "female" : "male";
-          upd.genderLocked = upd.gender;
-        } else {
-          upd.gender = "";
-        }
-        await db.collection("users").where({ openid: report.targetOpenid }).update({ data: upd });
-      }
+      // 管理员单人坐实视同本局 1 名举报人：分级梯子在 gender.js（L1 清空 / L2 累计 ≥2 次反推锁定）
+      await applyGenderFake(report.targetOpenid, 1);
     }
     let next = null;
     if (delta !== 0) next = await applyCreditDelta(report.targetOpenid, delta);
@@ -188,30 +132,4 @@ async function adminSetGender(event, openid) {
   return ok({ gender: g, genderLocked: data.genderLocked });
 }
 
-exports.main = async (event = {}) => {
-  const { OPENID } = cloud.getWXContext();
-  if (!OPENID) return fail("NO_AUTH", "无法识别用户");
-  try {
-    switch (event.action) {
-      case "login":
-        return await login(event, OPENID);
-      case "me":
-        return await me(OPENID);
-      case "register":
-        return await register(event, OPENID);
-      case "adminPending":
-        return await adminPending(OPENID);
-      case "resolveReport":
-        return await resolveReport(event, OPENID);
-      case "banUser":
-        return await banUser(event, OPENID);
-      case "adminSetGender":
-        return await adminSetGender(event, OPENID);
-      default:
-        return fail("NO_ACTION", "未知 action");
-    }
-  } catch (e) {
-    console.error("[user]", e);
-    return fail("EXCEPTION", "服务开小差了，请重试");
-  }
-};
+module.exports = { login, me, register, adminPending, resolveReport, banUser, adminSetGender };

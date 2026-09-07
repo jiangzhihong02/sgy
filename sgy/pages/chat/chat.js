@@ -2,7 +2,9 @@
 // 逻辑：显示"我参与的、尚未结束(recruiting/locked/ongoing)"的队伍聊天室。
 // 一个都没有 → 占位文案引导去组队；有一两个 → 切换聊天室直接看消息（最多两个：早上返校 ongoing + 晚上离校 recruiting 等）。
 const api = require("../../utils/api.js");
-const { statusView, fmtTime, dayLabel, frameCls } = require("../../utils/domain.js");
+const { fmtTime, frameCls } = require("../../utils/domain.js");
+const { cardOf, avatarChar } = require("../../utils/rideView.js");
+const autopoll = require("../../utils/autopoll.js");
 
 // 图片消息上限（与服务端 rides/rules.js 的 MSG_IMG_MAX 保持一致；q55→q30 两档压缩后仍超才拒）
 const IMG_MAX = 500000;
@@ -22,20 +24,34 @@ Page({
     loading: true,
   },
 
+  onLoad() {
+    // 聊天轮询：打开聊天室期间每 5 秒拉一次当前聊天室的新消息（切房时 tick 读最新的 curRideId）
+    this._chatPoll = autopoll({
+      intervalMs: 5000,
+      tick: () => {
+        const id = this.data.curRideId;
+        if (!id) return;
+        api.call("rides", { action: "messages", rideId: id }).then((res) => {
+          if (res.ok && this.data.curRideId === id) this.applyMessages(res.data.messages);
+        });
+      },
+    });
+  },
   onShow() {
     this.ensureMe().finally(() => this.refreshRooms());
+    this._chatPoll.start();
   },
   onHide() {
-    this.stopPoll();
+    this._chatPoll.stop();
   },
   onUnload() {
-    this.stopPoll();
+    this._chatPoll.stop();
   },
 
   // 缓存自己的 openid，用于判断"我发的消息"（气泡靠右）
   ensureMe() {
     if (this._openid) return Promise.resolve();
-    return api.call("user", { action: "me" }).then((r) => {
+    return api.call("rides", { action: "me" }).then((r) => {
       if (r.ok) {
         this._openid = r.data.user.openid;
         this.applyMessages(this.data.messages);
@@ -48,11 +64,14 @@ Page({
     if (!this.data.hasRooms) this.setData({ loading: true });
     const res = await api.call("rides", { action: "my" });
     const ongoing = res.ok ? res.data.ongoing || [] : [];
-    const rooms = ongoing.map((r) => ({
-      rideId: r._id,
-      label: `${dayLabel(r.boardAt)} ${r.routeLabel}`,
-      statusLabel: statusView(r.status).label,
-    }));
+    const rooms = ongoing.map((r) => {
+      const c = cardOf(r);
+      return {
+        rideId: r._id,
+        label: `${c.dayText} ${c.routeLabel}`,
+        statusLabel: c.statusLabel,
+      };
+    });
     this._rooms = rooms;
 
     let cur = this.data.curRideId;
@@ -70,7 +89,6 @@ Page({
   async loadRoom(rideId) {
     const room = this._rooms.find((x) => x.rideId === rideId);
     if (!room) return;
-    this.stopPoll();
     this.setData({ curRideId: rideId, curTitle: room.label, curSub: room.statusLabel });
     const res = await api.call("rides", { action: "detail", rideId });
     if (res.ok) {
@@ -78,8 +96,7 @@ Page({
       this._genderOf = {};
       (d.members || []).forEach((m) => (this._genderOf[m.openid] = m.gender || ""));
       this.applyMessages(d.messages || []);
-      this.setData({ curStatusCls: statusView(d.status).cls });
-      this.startPoll(rideId);
+      this.setData({ curStatusCls: cardOf(d).statusCls });
     }
   },
 
@@ -89,7 +106,7 @@ Page({
       const isImg = m.type === "image";
       const isDataImg = isImg && t.indexOf("data:") === 0; // 新 base64 图才渲染
       return {
-        whoChar: (m.name || "?").slice(0, 1),
+        whoChar: avatarChar(m.name),
         frame: frameCls(this._genderOf && this._genderOf[m.openid]),
         name: m.name,
         at: fmtTime(m.createdAt),
@@ -106,23 +123,6 @@ Page({
     const changed = list.length !== this.data.messages.length || oldLast !== newLast;
     if (!changed) return;
     this.setData({ messages: list, hasMyImage: list.some((x) => x.mine && x.type === "image") });
-  },
-
-  // 聊天轮询：打开聊天室期间每 5 秒拉一次新消息
-  startPoll(rideId) {
-    this.stopPoll();
-    this._pollTimer = setInterval(() => {
-      if (this.data.curRideId !== rideId) return;
-      api.call("rides", { action: "messages", rideId }).then((res) => {
-        if (res.ok && this.data.curRideId === rideId) this.applyMessages(res.data.messages);
-      });
-    }, 5000);
-  },
-  stopPoll() {
-    if (this._pollTimer) {
-      clearInterval(this._pollTimer);
-      this._pollTimer = null;
-    }
   },
 
   onSwitchRoom(e) {

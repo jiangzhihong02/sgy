@@ -15,7 +15,7 @@
    ```json
    { "action": "adminSeedDone", "members": ["<账号A的openid>", "<账号B的openid>", "<账号C(管理员/作者)的openid>"] }
    ```
-   （openid 在开发者工具里用云函数查一次：console 打印 `cloud.getWXContext().OPENID`，或看现有代码 `user/index.js` 的 ADMIN_OPENIDS）→ 记下返回的 `rideId`。
+   （openid 在开发者工具里用云函数查一次：console 打印 `cloud.getWXContext().OPENID`，或看现有代码 `rides/db.js` 的 ADMIN_OPENIDS）→ 记下返回的 `rideId`。
 
 ## 1. 找局页（回归重点：空态/重试、DB 线路下拉、头像框）
 - [ ] 打开「找局」正常出列表（不再是首屏空白）。

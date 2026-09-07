@@ -26,6 +26,7 @@
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
 - **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
 - **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
+- **云函数收敛（2026-09-07）**：独立 `user` 云函数删除、并入 `rides`（用户动作见 `rides/account.js`，客户端统一 `call('rides', …)`）；管理员名单收敛到 `rides/db.js`；性别不实分级收敛到 `rides/gender.js`（`social.complaint` 与 `account.resolveReport` 共用）。
 
 ## 1. 集合与文档结构
 
@@ -167,13 +168,16 @@ ongoing
 - `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
 - `__sweep`：由 rideSweep 定时触发调用的结算/状态推进（rides 文件夹内 `sweep.js`，数值以 §2 为准）。
 
-### `user`（档案与信用管理）
+### 用户档案动作（并入 `rides` 云函数；原独立 `user` 云函数已删除，客户端统一 `call({ name:'rides' })`）
+
+> 2026-09-07：`user` 目录删除，以下动作改由 `rides` 入口分发（`rides/account.js`）。信用/建档复用 `db.js`，性别分级复用 `gender.js`，管理员名单唯一来源 `db.js`——不再有跨可部署单元的策略副本。
+
 - `login`：入 `{ nickName, avatarUrl?, gender? }`。按 openid 惰性建档/更新，出 `{ user, isAdmin }`。
 - `adminList`：出待处理 reports + 用户信用列表（需管理员）。
 - `resolveReport`：入 `{ reportId, action: 'uphold'|'dismiss' }`（需管理员）。按 §4 应用扣分并置状态；`gender_fake` 坐实另需清空目标性别。
 - `banUser`：入 `{ openid, days }`（需管理员，信用清零用）。
 - `adminSetGender`：入 `{ targetOpenid, gender: male|female|'', lock?: bool }`（需管理员）。`gender` 非空且 `lock!==false` → 设值并锁定；否则纠正/解锁（`genderLocked=''`）。用于性别误锁纠正。
-- **管理员判定**：`ADMIN_OPENIDS = [ 'wx81d8e8ae2b8ff3df 环境所属作者 openid（部署时填入）' ]`——上线前把作者 openid 填进该数组。
+- **管理员判定**：唯一来源 `cloudfunctions/rides/db.js` 的 `ADMIN_OPENIDS`（内测期作者）。改名单改那一处即可。
 
 ### `routeInit`（一次性初始化，手动调用一次）
 - 幂等创建集合（users/routes/rides/messages/reports；已存在则跳过）。
@@ -193,4 +197,4 @@ ongoing
 2. 右键 `cloudfunctions/routeInit` → 「上传并部署：云端安装依赖」，在云开发控制台或临时页调用一次初始化。
 3. 上传 `rides` / `user` / `rideSweep`（rideSweep 带 config.json 触发器）。
 4. 云开发控制台给 rides/messages/reports/users 按 §0 建索引。
-5. 作者 openid 填进 `user/index.js` 的 `ADMIN_OPENIDS`。
+5. 作者 openid 填进 `rides/db.js` 顶部的 `ADMIN_OPENIDS`。

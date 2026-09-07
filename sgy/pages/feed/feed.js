@@ -2,7 +2,8 @@
 // 筛选：方向(返校/离校/全部) · 上车点/下车点(下拉) · 还差几人(空位)
 const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
-const { statusView, dayLabel, departFromNow, frameCls } = require("../../utils/domain.js");
+const { cardOf, avatarSlots } = require("../../utils/rideView.js");
+const autopoll = require("../../utils/autopoll.js");
 
 const DIR_OPTIONS = [
   { id: "in", label: "返校" },
@@ -54,31 +55,20 @@ Page({
   },
 
   onLoad() {
+    // 常驻找局页时每 10 秒轻量刷新：别人新发的局/人数变化不用切 Tab 也能看到；下拉展开时不刷
+    this._feedPoll = autopoll({ intervalMs: 10000, idleWhile: () => this.data.openKey !== "none", tick: () => this.refresh() });
     this.refresh();
     this.refreshRoutes();
   },
   onShow() {
     if (this.data.loaded) this.refresh();
-    this.startAutoRefresh();
+    this._feedPoll.start();
   },
   onHide() {
-    this.stopAutoRefresh();
+    this._feedPoll.stop();
   },
   onUnload() {
-    this.stopAutoRefresh();
-  },
-  // 常驻找局页时每 10 秒轻量刷新：别人新发的局/人数变化不用切 Tab 也能看到
-  startAutoRefresh() {
-    this.stopAutoRefresh();
-    this._feedTimer = setInterval(() => {
-      if (this.data.openKey === "none") this.refresh(); // 下拉展开时不打断用户选择
-    }, 10000);
-  },
-  stopAutoRefresh() {
-    if (this._feedTimer) {
-      clearInterval(this._feedTimer);
-      this._feedTimer = null;
-    }
+    this._feedPoll.stop();
   },
   // 线路目录以云端为准：拉到后重建当前方向的下拉；所选值若已不存在则回到"全部"
   async refreshRoutes() {
@@ -215,40 +205,22 @@ Page({
         return true;
       })
       .map((r) => {
-        const sv = statusView(r.status);
+        const c = cardOf(r); // 卡片展示唯一派生（routeLabel/时间/座位/状态标签）
         return {
           ...r,
           id: r._id,
-          routeLabel: r.routeLabel || `${r.from} → ${r.to}`,
-          timeText: dayLabel(r.boardAt),
-          departText: departFromNow(r.boardAt),
-          seatText: `${r.memberCount}/${r.capacity} 人`,
-          statusLabel: sv.label,
-          statusCls: sv.cls,
+          routeLabel: c.routeLabel,
+          timeText: c.dayText,
+          departText: c.departText,
+          seatText: c.seatText,
+          statusLabel: c.statusLabel,
+          statusCls: c.statusCls,
           joined: !!r.joined,
           mine: !!r.mine,
           marked: !!r.mine || !!r.joined,
           markLabel: r.mine ? "我发起的" : r.joined ? "已加入" : "",
-          // 固定 capacity 个头像位：有人=真人头像；空位=灰圈加号
-          slots: (() => {
-            const mem = r.membersBrief || [];
-            const cap = r.capacity || 4;
-            const arr = [];
-            for (let i = 0; i < cap; i++) {
-              const m = mem[i];
-              arr.push(
-                m
-                  ? {
-                      k: i,
-                      filled: true,
-                      text: (m.name || "?").slice(0, 1),
-                      cls: frameCls(m.gender),
-                    }
-                  : { k: i, filled: false, text: "" }
-              );
-            }
-            return arr;
-          })(),
+          // 固定 capacity 个头像位：有人=真人首字+性别框；空位=灰圈加号
+          slots: avatarSlots(r, r.membersBrief),
           joinable: r.status === "recruiting" && r.memberCount < r.capacity,
         };
       });

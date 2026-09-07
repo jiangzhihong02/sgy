@@ -1,4 +1,4 @@
-// pages/profile/profile.js —— Tab3 我的（已接云 user.me / user.login）
+// pages/profile/profile.js —— Tab3 我的（已接 rides.me / rides.login）
 const api = require("../../utils/api.js");
 
 // 随机昵称建议：每个人默认不一样（注册时可改）
@@ -38,7 +38,7 @@ Page({
   },
 
   async refresh() {
-    const res = await api.call("user", { action: "me" });
+    const res = await api.call("rides", { action: "me" });
     if (res.ok) {
       const u = res.data.user;
       const locked = !!u.genderLocked;
@@ -88,7 +88,7 @@ Page({
     if (this.data.registering) return;
     this.setData({ registering: true });
     wx.showLoading({ title: "注册中", mask: true });
-    const res = await api.call("user", { action: "register", nickName: nick, gender: this.data.user.gender || "" });
+    const res = await api.call("rides", { action: "register", nickName: nick, gender: this.data.user.gender || "" });
     wx.hideLoading();
     this.setData({ registering: false });
     if (res.ok) {
@@ -102,7 +102,7 @@ Page({
 
   async onPickGender(e) {
     const g = e.currentTarget.dataset.id;
-    const res = await api.call("user", { action: "login", gender: g });
+    const res = await api.call("rides", { action: "login", gender: g });
     if (res.ok) {
       this.setData({ "user.gender": g });
       wx.showToast({ title: "已保存（自报，无法强验证）", icon: "none" });

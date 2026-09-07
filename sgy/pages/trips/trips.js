@@ -1,6 +1,6 @@
 // pages/trips/trips.js —— Tab2 行程（已接云 rides.my）
 const api = require("../../utils/api.js");
-const { statusView, fmtTime } = require("../../utils/domain.js");
+const { cardOf } = require("../../utils/rideView.js");
 
 Page({
   data: {
@@ -38,15 +38,16 @@ Page({
   render() {
     const src = this.data.seg === "ongoing" ? this._ongoing : this._done;
     const trips = (src || []).map((t) => {
-      const sv = statusView(t.status);
+      const c = cardOf(t);
       return {
         ...t,
         id: t._id,
-        routeLabel: t.routeLabel || `${t.from} → ${t.to}`,
-        timeText: fmtTime(t.boardAt),
-        statusLabel: sv.label,
-        statusCls: sv.cls,
-        seatText: `${t.memberCount}/${t.capacity} 人`,
+        routeLabel: c.routeLabel,
+        // 时间标签与找局统一为「含日期」（今天/明天/月/日 + HH:mm）——历史记录不再丢失是哪一天
+        timeText: c.dayText,
+        seatText: c.seatText,
+        statusLabel: c.statusLabel,
+        statusCls: c.statusCls,
       };
     });
     this.setData({ trips, loading: false, loaded: true });
