@@ -1,6 +1,6 @@
 // queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 聊天拉取
 const { T_JOIN_CLOSE, T_FREE_EXIT, ACTIVE_STATUS, canCheckin } = require("./rules");
-const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf } = require("./db");
+const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf, advanceMany } = require("./db");
 
 const view = (r) => ({
   _id: r._id,
@@ -26,8 +26,10 @@ async function list(event, openid) {
   if (event.pickup) cond.from = event.pickup;
   if (event.date) cond.date = event.date;
   const res = await db.collection("rides").where(cond).orderBy("boardAt", "asc").limit(50).get();
+  // 读时自愈：先把这批到期局就地推进（关局/上路/结算），翻完就不再出现在列表
+  let raw = await advanceMany(res.data || []);
+  raw = raw.filter((r) => ACTIVE_STATUS.includes(r.status));
   // 先到者优先：隐藏"host 是 不想带我的人"发起的局（对方标过我，不希望我出现在他/她的局里；join 另有否决兜底）
-  let raw = res.data || [];
   const blockers = await blockersOf(openid);
   if (blockers.size) raw = raw.filter((r) => !blockers.has(r.hostOpenid));
   const rides = raw.map((r) => ({
@@ -41,7 +43,8 @@ async function list(event, openid) {
 
 async function my(event, openid) {
   const res = await db.collection("rides").where({ memberOpenids: openid }).limit(100).get();
-  const rows = (res.data || []).map(view).sort((a, b) => b.boardAt - a.boardAt);
+  const adv = await advanceMany(res.data || []); // 读时自愈：过期未关/未结算的先就地推进
+  const rows = adv.map(view).sort((a, b) => b.boardAt - a.boardAt);
   const ongoing = rows.filter((r) => ["recruiting", "locked", "ongoing"].includes(r.status));
   const history = rows.filter((r) => ["done", "cancelled", "failed"].includes(r.status));
   return ok({ ongoing, history });

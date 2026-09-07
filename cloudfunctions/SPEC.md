@@ -24,7 +24,8 @@
 - 举报（complaint）：kind 限 `gender_fake|lateness|absence`；同一(局,人)同类一人一次；同局 ≥2 名不同成员联名自动坐实并只扣一次。
 - rides 新增 action：`messages`（轻量拉消息）、`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。消息带 `type: text|image`（image=base64 data URI，单条 ≤200k 字符，每人每局 1 张）。
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
-- **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托，不再自带规则副本（先部署 rides 再部署 rideSweep）。
+- **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
+- **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
 
 ## 1. 集合与文档结构
 

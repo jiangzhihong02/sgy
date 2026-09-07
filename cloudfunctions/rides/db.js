@@ -11,6 +11,12 @@ const {
   BAN_DAYS_MS,
   T_MIN_GAP,
   T_SAME_DIR,
+  T_JOIN_CLOSE,
+  T_POLL_ASK,
+  T_POLL_DUE,
+  T_SETTLE,
+  CREDIT_RIDE_OK,
+  CREDIT_LEAVE_NO_SHOW,
   ACTIVE_STATUS,
   MSG_MAX,
   randNick,
@@ -77,9 +83,77 @@ function getMember(ride, openid) {
   return (ride.members || []).find((m) => m.openid === openid) || null;
 }
 
+// 到期惰性推进（读时自愈）：把一张局按当前时间就地推进到它该在的状态。
+// 所有状态翻转用"仍处于原状态"的条件更新，避免并发双推进；结算只由翻到 done 的那一方执行，
+// settled 字段防止重复结算。rideSweep 定时器与每次读取共用同一逻辑（不再依赖定时器）。
+async function advanceStatus(raw) {
+  let cur = raw;
+  let changed = false;
+  for (let i = 0; i < 4; i++) {
+    const now = Date.now();
+    let patch = null;
+    let settle = false;
+    if (cur.status === "recruiting") {
+      if (now >= cur.boardAt - T_JOIN_CLOSE) {
+        patch = { status: cur.memberCount >= 2 ? "locked" : "failed", poll: null, updatedAt: now };
+      } else if (cur.memberCount < cur.capacity) {
+        if (!cur.poll || !cur.poll.active) {
+          if (now >= cur.boardAt - T_POLL_ASK && now < cur.boardAt - T_POLL_DUE) {
+            patch = { poll: { active: true, status: "pending", askedAt: now, dueAt: cur.boardAt - T_POLL_DUE, responses: [] }, updatedAt: now };
+          }
+        } else if (now >= (cur.poll.dueAt || cur.boardAt - T_POLL_DUE)) {
+          patch = { poll: { ...cur.poll, active: false, status: "accepted", responses: cur.poll.responses || [] }, updatedAt: now };
+        }
+      }
+    } else if (cur.status === "locked" && now >= cur.boardAt) {
+      patch = { status: "ongoing", updatedAt: now };
+    } else if (cur.status === "ongoing" && !cur.settled && now >= cur.boardAt + T_SETTLE) {
+      const noShows = (cur.members || []).filter((m) => !(m.checkedInAt && m.checkedInAt > 0)).map((m) => m.openid);
+      patch = { status: "done", settled: true, noShowConfirmed: (cur.noShowConfirmed || []).concat(noShows), updatedAt: now };
+      settle = true;
+    } else {
+      break; // 当前没有到期的推进
+    }
+    if (!patch) break;
+    const upd = await db.collection("rides").where({ _id: cur._id, status: cur.status }).update({ data: patch });
+    const won = !!(upd && upd.stats && upd.stats.updated > 0);
+    if (won) {
+      changed = true;
+      cur = { ...cur, ...patch };
+      if (settle) {
+        for (const m of cur.members || []) {
+          if (m.checkedInAt && m.checkedInAt > 0) await applyCreditDelta(m.openid, CREDIT_RIDE_OK);
+          else await applyCreditDelta(m.openid, CREDIT_LEAVE_NO_SHOW);
+        }
+      }
+    } else {
+      // 竞争失败（别人先翻了）：重拉最新状态继续判
+      const f = await db.collection("rides").where({ _id: cur._id }).limit(1).get();
+      const fresh = f.data[0];
+      if (!fresh) break;
+      cur = fresh;
+    }
+  }
+  return { ride: cur, changed };
+}
+
+/** 读取一张局：先就地推进到期状态再返回（读时自愈入口）。 */
 async function getRide(rideId) {
   const res = await db.collection("rides").where({ _id: rideId }).limit(1).get();
-  return res.data[0] || null;
+  const raw = res.data[0];
+  if (!raw) return null;
+  const { ride } = await advanceStatus(raw);
+  return ride;
+}
+
+/** 批量推进（找局/行程列表用），返回推进后的文档。 */
+async function advanceMany(rows) {
+  const out = [];
+  for (const r of rows || []) {
+    const { ride } = await advanceStatus(r);
+    out.push(ride);
+  }
+  return out;
 }
 
 // 是否存在冲突的未出发局：① 任何方向出发时间差 < T_MIN_GAP（无法同时上两辆的士）；
@@ -138,6 +212,8 @@ module.exports = {
   getRide,
   findTimeConflict,
   blockersOf,
+  advanceStatus,
+  advanceMany,
   recentMessages,
   MSG_MAX,
 };
