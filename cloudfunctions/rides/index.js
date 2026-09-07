@@ -13,6 +13,8 @@ const sweep = require("./sweep");
 const account = require("./account");
 
 // action → 处理函数。__sweep 由 rideSweep 云函数每分钟触发调用（见 cloudfunctions/rideSweep）。
+// ⚠ 本表所有处理函数统一签名 (event, openid)：只认 openid 不认 event 的（如 account.me/adminPending）
+//   也必须写成 (event, openid) 再忽略 event——否则会把 event 当 openid（曾致 users 按对象建档的 bug）。
 const HANDLERS = {
   // 拼车局生命周期
   create: lifecycle.create,

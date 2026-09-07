@@ -32,7 +32,8 @@ async function login(event, openid) {
   return ok({ user: publicUser(u), isAdmin: isAdmin(openid) });
 }
 
-async function me(openid) {
+async function me(event, openid) {
+  // 签名与 index.js 的 handler(event, OPENID) 统一：只认 openid，忽略 event。
   const u = await ensureUser(openid);
   return ok({ user: publicUser(u), isAdmin: isAdmin(openid) });
 }
@@ -51,7 +52,7 @@ async function register(event, openid) {
 }
 
 // 管理员：待处理上报列表（带对象/举报人/线路/类型中文）
-async function adminPending(openid) {
+async function adminPending(event, openid) {
   if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const res = await db.collection("reports").where({ status: "pending" }).get();
   const KIND_LABEL = { gender_fake: "性别填写与真实不符", absence: "缺勤 / 没来", lateness: "迟到", no_show: "爽约" };
