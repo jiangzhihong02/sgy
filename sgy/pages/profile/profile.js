@@ -1,5 +1,6 @@
 // pages/profile/profile.js —— Tab3 我的（已接 rides.me / rides.login）
 const api = require("../../utils/api.js");
+const rulesText = require("../../utils/rulesText.js");
 
 // 随机昵称建议：每个人默认不一样（注册时可改）
 const WORDS = ["麦穗", "山风", "橘子", "青柠", "海豚", "布丁", "繁星", "远山", "小鹿", "云朵", "晨光", "晚风"];
@@ -27,6 +28,7 @@ Page({
   },
 
   onShow() {
+    rulesText.load(); // 预拉规则面板（信用/隐私弹层文案与数字以云端为准）
     this.refresh().then(() => {
       // 从发局/加入被拦跳过来时：自动弹出注册
       const g = getApp().globalData;
@@ -116,13 +118,11 @@ Page({
     const modals = {
       credit: {
         title: "信用分规则",
-        content:
-          "初始 100，封顶 120。爽约（出发前 30 分钟后退出、或到点没「我到了」）自动 −20；成功同行 +1。拼车结束后，队友可就 迟到(−10) / 缺勤·没来(−20) / 性别不实(−20) 举报：同一局 ≥2 名成员联名即自动坐实，否则转管理员复核。低于 60 暂停发起新局 7 天（仍可加入）。",
+        content: rulesText.creditText(), // 数字与文案单一来源 rides/rules.js（getRules 下发）
       },
       privacy: {
         title: "性别与隐私",
-        content:
-          "性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别若与真实不符，同车人可在局内举报，坐实后清空性别并扣信用分。不展示微信号，站内联系。",
+        content: rulesText.privacyText(),
       },
       about: {
         title: "深港拼车",

@@ -4,16 +4,7 @@ const api = require("../../utils/api.js");
 const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const { dayLabel, frameCls } = require("../../utils/domain.js");
 const autopoll = require("../../utils/autopoll.js");
-
-// 基本规则（面向用户的中文表述，避免 T−30 之类黑话；与 rides 服务端实现一致）
-const RULES_ROWS = [
-  { t: "最少 2 人", d: "即成一局；不足 2 人的局会在上车前自动取消，不计爽约。" },
-  { t: "出发前 60 分钟", d: "人数还没满时，全员确认是否「按当前人数出发」，没回复默认同意。" },
-  { t: "出发前 30 分钟", d: "此前可自由退出、发起人可解散；之后再退出算爽约，扣信用分。" },
-  { t: "出发前 10 分钟", d: "停止加入，按当时人数锁定成局。" },
-  { t: "约定时间", d: "到上车点的士站集合，点「我到了」告诉队友你已到。" },
-  { t: "上车后 10 分钟", d: "停止「我到了」签到；之后仍没签到也没退出的，系统会在局结束时按爽约自动扣信用分。" },
-];
+const rulesText = require("../../utils/rulesText.js");
 
 Page({
   data: {
@@ -28,7 +19,7 @@ Page({
     meNeedPoll: false,
     pollAccepted: false,
     showRules: false,
-    rules: RULES_ROWS,
+    rules: rulesText.timeline(), // 规则面板：云端单一来源，本地快照兜底（onLoad 再刷新）
     isDone: false, // 已结束/已取消：操作按钮应灰置不可交互
     showMember: false, // 成员资料浮层
     panel: null, // { openid,name,gender,credit,blocked,frame }
@@ -40,6 +31,8 @@ Page({
   onLoad(options) {
     this._rideId = options && options.id;
     this._openid = "";
+    // 规则面板以云端为准：拉回后刷新（未拉到用快照）
+    rulesText.load().then(() => this.setData({ rules: rulesText.timeline() }));
     // 详情页常驻时自动刷新：新人入队/人数变化/备注修改不用退出重进（加载到内容且无错误才刷）
     this._ridePoll = autopoll({ intervalMs: 6000, idleWhile: () => !!this.data.ride && !this.data.errorMsg, tick: () => this.refresh() });
     if (this._rideId) this.refresh();

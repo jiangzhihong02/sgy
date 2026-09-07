@@ -30,6 +30,7 @@ const HANDLERS = {
   detail: queries.detail,
   messages: queries.rideMessages,
   routes: queries.routeList,
+  getRules: queries.getRules, // 规则面板下发（文案/数字单一来源 rules.js，客户端快照兜底）
   // 局内聊天
   sendMessage: chat.sendMessage,
   // 局内成员间

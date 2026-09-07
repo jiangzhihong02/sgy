@@ -1,5 +1,5 @@
 // queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 聊天拉取
-const { T_JOIN_CLOSE, T_FREE_EXIT, ACTIVE_STATUS, canCheckin } = require("./rules");
+const { T_JOIN_CLOSE, T_FREE_EXIT, ACTIVE_STATUS, canCheckin, rulePayload } = require("./rules");
 const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf, advanceMany } = require("./db");
 
 const view = (r) => ({
@@ -97,4 +97,9 @@ async function routeList(event) {
   });
 }
 
-module.exports = { list, my, detail, rideMessages, routeList };
+// 面向用户规则面板下发（文案与数值单一来源 rides/rules.js；客户端本地快照仅兜底）
+async function getRules() {
+  return ok(rulePayload());
+}
+
+module.exports = { list, my, detail, rideMessages, routeList, getRules };

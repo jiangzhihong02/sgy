@@ -5,9 +5,7 @@ const api = require("../../utils/api.js");
 const { fmtTime, frameCls } = require("../../utils/domain.js");
 const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const autopoll = require("../../utils/autopoll.js");
-
-// 图片消息上限（与服务端 rides/rules.js 的 MSG_IMG_MAX 保持一致；q55→q30 两档压缩后仍超才拒）
-const IMG_MAX = 500000;
+const rulesText = require("../../utils/rulesText.js"); // 图片上限与服务端 MSG_IMG_MAX 同一来源（getRules 下发，快照兜底）
 
 Page({
   data: {
@@ -25,6 +23,7 @@ Page({
   },
 
   onLoad() {
+    rulesText.load(); // 图片上限以云端为准（未拉到用快照 500000，与旧行为一致）
     // 聊天轮询：打开聊天室期间每 5 秒拉一次当前聊天室的新消息（切房时 tick 读最新的 curRideId）
     this._chatPoll = autopoll({
       intervalMs: 5000,
@@ -200,10 +199,10 @@ Page({
     wx.showLoading({ title: "压缩中", mask: true });
     compress(55)
       .then(toData)
-      .then((uri) => (uri.length > IMG_MAX ? compress(30).then(toData) : uri))
+      .then((uri) => (uri.length > rulesText.imgMax() ? compress(30).then(toData) : uri))
       .then((uri) => {
         wx.hideLoading();
-        if (uri.length > IMG_MAX) {
+        if (uri.length > rulesText.imgMax()) {
           wx.showToast({ title: "图片仍太大，请用 ≤300KB 的群二维码截图", icon: "none" });
           return;
         }

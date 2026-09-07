@@ -3,6 +3,7 @@
 const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { DIRECTIONS, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
+const rulesText = require("../../utils/rulesText.js");
 
 // 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
 const HOURS = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
@@ -179,11 +180,8 @@ Page({
   },
 
   onPreviewRule() {
-    wx.showModal({
-      title: "一局怎么算成立",
-      content:
-        "最少 2 人成局，人数上限由你设（2–4）。按出发时间倒推：提前 1 小时未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 45 分钟）；提前 30 分钟前可自由退出、你可解散；提前 10 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，出发后 10 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。",
-      showCancel: false,
+    rulesText.load().then(() => {
+      wx.showModal({ title: "一局怎么算成立", content: rulesText.preview(), showCancel: false });
     });
   },
 
