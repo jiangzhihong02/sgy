@@ -70,7 +70,7 @@ const PREVIEW_TEXT =
 const CREDIT_TEXT =
   `初始 ${CREDIT_DEFAULT}，封顶 ${CREDIT_CAP}。爽约（出发前 ${MIN_(T_FREE_EXIT)} 分钟后退出、或到点没「我到了」）自动 ${CREDIT_LEAVE_NO_SHOW}；成功同行 +${CREDIT_RIDE_OK}。拼车结束后，队友可就 迟到(${KIND_DELTA.lateness}) / 缺勤·没来(${KIND_DELTA.absence}) / 性别不实(${KIND_DELTA.gender_fake}) 举报：同一局 ≥2 名成员联名即自动坐实，否则转管理员复核。低于 ${CREDIT_LOW} 暂停发起新局 ${DAYS_(BAN_DAYS_MS)} 天（仍可加入）。`;
 const PRIVACY_TEXT =
-  `性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别若与真实不符，同车人可在局内举报：坐实后清空性别并扣信用分；多人联名或屡次坐实则把性别改为系统判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。`;
+  `性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别与真实不符，会被同车人举报：坐实后清空性别并扣信用分；若同一局有 3 名以上成员同报、或你被多次坐实，则系统把性别改为判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。`;
 
 /** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview/creditText/privacyText 供弹层，limits 供前端校验）。 */
 function rulePayload() {

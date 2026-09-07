@@ -27,8 +27,7 @@ function cardOf(ride) {
   const sv = D.statusView(ride.status);
   return {
     routeLabel: rideLabel(ride),
-    dayText: D.dayLabel(ride.boardAt), // "今天/明天/9/1 07:40"（含日期）
-    clockText: D.fmtTime(ride.boardAt), // 纯时钟 "07:40"（紧凑场景用）
+    dayText: D.dayLabel(ride.boardAt), // "今天/明天/9/1 07:40"（含日期，唯一时间口径）
     departText: D.departFromNow(ride.boardAt),
     seatText: seatText(ride),
     statusLabel: sv.label,
