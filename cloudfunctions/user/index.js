@@ -131,7 +131,8 @@ async function resolveReport(event, openid) {
     const DELTA = { gender_fake: -20, absence: -20, lateness: -10, no_show: -20 };
     const delta = Object.prototype.hasOwnProperty.call(DELTA, report.kind) ? DELTA[report.kind] : -20;
     if (report.kind === "gender_fake") {
-      // 与 rides 联名自动坐实同一套分级：累计坐实 ≥2 次 → 反推为另一性别并锁定；否则清空可重填
+      // 与 rides 联名自动坐实同一套分级：累计坐实 ≥2 次 → 反推为另一性别并锁定；否则清空可重填。
+      // ⚠ 同套分级逻辑在 cloudfunctions/rides/social.js 的 complaint（联名自动坐实），改动必须两处同步。
       const t = await ensureUser(report.targetOpenid);
       const g = t.gender || "";
       if (!t.genderLocked && g) {

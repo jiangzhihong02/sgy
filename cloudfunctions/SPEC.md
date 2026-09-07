@@ -164,6 +164,7 @@ ongoing
 - `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。
 - `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
 - `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
+- `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
 - `__sweep`：由 rideSweep 定时触发调用的结算/状态推进（rides 文件夹内 `sweep.js`，数值以 §2 为准）。
 
 ### `user`（档案与信用管理）

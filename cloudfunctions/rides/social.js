@@ -74,6 +74,7 @@ async function complaint(event, openid) {
   // 联名坐实：同一局内 ≥2 名不同成员举报同一人 → 自动坐实并扣分一次。
   // 性别不实走分级：L1(单次 2 人)=清空性别可重填；L2(单局 ≥3 人 或 累计 ≥2 次坐实)=
   // 反推为另一性别并锁死(仅管理员可改)。已锁定者不再被此路径改动。
+  // ⚠ 同套分级逻辑在 cloudfunctions/user/index.js 的 resolveReport（管理员坐实），改动必须两处同步。
   const after = await db.collection("reports").where({ rideId: ride._id, targetOpenid: event.targetOpenid, status: "pending" }).get();
   const list = after.data || [];
   const reporters = new Set(list.map((x) => x.byOpenid));

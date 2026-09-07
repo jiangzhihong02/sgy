@@ -1,6 +1,6 @@
 // admin.js —— 管理员联调辅助（造已完成局）。正式后台复核在 user 云函数 adminPending/resolveReport。
 // ADMIN_OPENIDS 与 cloudfunctions/user/index.js 保持一致。
-const { db, ok, fail, ensureUser } = require("./db");
+const { db, _, ok, fail, ensureUser } = require("./db");
 
 const ADMIN_OPENIDS = ["oDhfnxajsWOYp-ak-V7Vmnm953q0"];
 
@@ -55,4 +55,34 @@ async function adminSeedDone(event, openid) {
   return ok({ rideId: add._id, members: list });
 }
 
-module.exports = { adminSeedDone };
+// 联调清理：清空 局数据域（rides / messages / invites / reports），保留 users 与 routes。
+// 管理员专用；内测重测前使用。
+async function adminReset(event, openid) {
+  if (!ADMIN_OPENIDS.includes(openid)) return fail("NO_ADMIN", "无管理员权限");
+  const removed = {};
+  for (const c of ["reports", "invites", "messages", "rides"]) {
+    let n = 0;
+    // 先试批量 where 删除，不支持则退化为分页逐删
+    try {
+      const r = await db.collection(c).where({ _id: _.exists(true) }).remove();
+      n = (r && r.stats && r.stats.removed) || 0;
+    } catch (e) {
+      let total = 0;
+      for (;;) {
+        const page = await db.collection(c).where({ _id: _.exists(true) }).limit(100).get();
+        const ids = (page.data || []).map((d) => d._id);
+        if (!ids.length) break;
+        for (const id of ids) {
+          await db.collection(c).doc(id).remove();
+          total += 1;
+        }
+        if ((page.data || []).length < 100) break;
+      }
+      n = total;
+    }
+    removed[c] = n;
+  }
+  return ok({ removed });
+}
+
+module.exports = { adminSeedDone, adminReset };

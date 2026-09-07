@@ -39,6 +39,7 @@ const HANDLERS = {
   reinvite: invites.reinvite,
   // 管理员联调
   adminSeedDone: admin.adminSeedDone,
+  adminReset: admin.adminReset,
   // 定时推进
   __sweep: sweep.run,
 };
