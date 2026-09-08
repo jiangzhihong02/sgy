@@ -98,4 +98,18 @@
 
   <!-- 规则半屏面板（信用分表格 / 隐私与实名分节，云端单一来源） -->
   <rules-panel id="rulesPanel" />
+
+  <!-- 关于本工具（半屏面板：简介 / 版本 / 近期更新） -->
+  <view wx:if="{{showAbout}}" class="ab-mask" bindtap="closeAbout"></view>
+  <view wx:if="{{showAbout}}" class="ab-panel">
+    <view class="row-between ab-head">
+      <text class="ab-title">深港拼车</text>
+      <text class="ab-close" bindtap="closeAbout">✕</text>
+    </view>
+    <view class="ab-desc">为深港跨境通勤者（当前：往返香港教育大学的师生）提供拼车局撮合。只组队、不约车、不经手车费，AA 线下进行。</view>
+    <view class="ab-ver">{{aboutVer}}</view>
+    <view class="ab-section">近期更新</view>
+    <view wx:for="{{aboutChangelog}}" wx:key="*this" class="ab-item">{{item}}</view>
+    <view class="ab-agree" bindtap="closeAbout">知道了</view>
+  </view>
 </view>

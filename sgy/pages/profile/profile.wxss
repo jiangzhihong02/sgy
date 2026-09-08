@@ -122,3 +122,76 @@
   text-align: center;
   padding: 20rpx 0 40rpx;
 }
+
+/* ---- 关于本工具（半屏面板） ---- */
+.ab-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+.ab-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 91;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.ab-head {
+  margin-bottom: 16rpx;
+}
+.ab-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+.ab-close {
+  color: #8a9099;
+  font-size: 32rpx;
+  padding: 8rpx 8rpx 8rpx 24rpx;
+}
+.ab-desc {
+  font-size: 25rpx;
+  color: #4e545c;
+  line-height: 1.7;
+}
+.ab-ver {
+  display: inline-block;
+  margin-top: 12rpx;
+  font-size: 24rpx;
+  color: #07a55a;
+  background: #e8f9ef;
+  border-radius: 999rpx;
+  padding: 4rpx 18rpx;
+}
+.ab-section {
+  margin: 24rpx 0 8rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1f2329;
+}
+.ab-item {
+  font-size: 25rpx;
+  color: #4e545c;
+  line-height: 1.6;
+  padding: 10rpx 0 10rpx 24rpx;
+  border-left: 4rpx solid #e8f9ef;
+  margin-bottom: 6rpx;
+}
+.ab-agree {
+  margin-top: 28rpx;
+  background: #07c160;
+  color: #fff;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+}

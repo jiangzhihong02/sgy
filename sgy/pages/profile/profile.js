@@ -2,6 +2,16 @@
 const api = require("../../utils/api.js");
 const rulesText = require("../../utils/rulesText.js");
 
+// 关于本工具 · 近期更新（发版时手动加一行）
+const CHANGELOG = [
+  "加急局：30 分钟内出发，凑不齐自动作废、不扣发起人分",
+  "结算提速：上车 45 分钟结算，48 小时内可补签确认",
+  "聊天室：完成后保留 48 小时，可补 AA 账、看收款码",
+  "如何 AA 教程页：面对面 / 聊天室收款码 / 微信群群收款",
+  "规则面板可视化 + 首次免责声明",
+  "聊天室公约：友善发言，警惕出发前先收钱",
+];
+
 // 随机昵称建议：每个人默认不一样（注册时可改）
 const WORDS = ["麦穗", "山风", "橘子", "青柠", "海豚", "布丁", "繁星", "远山", "小鹿", "云朵", "晨光", "晚风"];
 const nickSuggestion = () => `${WORDS[Math.floor(Math.random() * WORDS.length)]}${Math.floor(10 + Math.random() * 90)}`;
@@ -27,6 +37,9 @@ Page({
       { id: "feedback", label: "反馈与建议", icon: "✉️" },
       { id: "about", label: "关于本工具", icon: "ℹ️" },
     ],
+    showAbout: false,
+    aboutVer: "",
+    aboutChangelog: CHANGELOG,
   },
 
   onShow() {
@@ -144,13 +157,21 @@ Page({
       return;
     }
     if (id === "about") {
-      wx.showModal({
-        title: "深港拼车",
-        content:
-          "为深港跨境通勤者（当前：往返香港教育大学的师生）提供拼车局撮合。只组队、不约车、不经手车费，AA 线下进行。",
-        showCancel: false,
-      });
+      this.openAbout();
     }
+  },
+
+  // 关于本工具：半屏面板（运行版本号 + 近期更新）
+  openAbout() {
+    let ver = "";
+    try {
+      ver = (wx.getAccountInfoSync().miniProgram && wx.getAccountInfoSync().miniProgram.version) || "";
+    } catch (e) { ver = ""; }
+    const label = ver && ver !== "develop" ? `版本 ${ver}` : "开发版";
+    this.setData({ showAbout: true, aboutVer: label });
+  },
+  closeAbout() {
+    this.setData({ showAbout: false });
   },
 
   onAdmin() {
