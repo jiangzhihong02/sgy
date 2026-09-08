@@ -22,7 +22,7 @@ Page({
     ],
     menu: [
       { id: "credit", label: "信用分与规则", icon: "⭐" },
-      { id: "privacy", label: "隐私与实名说明", icon: "🔒" },
+      { id: "privacy", label: "性别与隐私", icon: "🔒" },
       { id: "feedback", label: "反馈与建议", icon: "✉️" },
       { id: "about", label: "关于本工具", icon: "ℹ️" },
     ],
