@@ -205,9 +205,6 @@ Page({
       },
     });
   },
-  memGoRide() {
-    if (this.data.curRideId) wx.navigateTo({ url: `/pages/ride/ride?id=${this.data.curRideId}` });
-  },
 
   goFeed() {
     wx.switchTab({ url: "/pages/feed/feed" });

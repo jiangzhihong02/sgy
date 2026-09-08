@@ -82,6 +82,5 @@
     </button>
     <button wx:if="{{!mem.isMe}}" class="btn btn-danger-ghost btn-block mp-btn" bindtap="memReport">举报（性别填写与真实不符）</button>
     <view wx:if="{{!mem.isMe && !mem.blocked}}" class="small muted mp-tip">标记后，加入含 TA 的队伍时会收到提醒</view>
-    <button class="btn btn-ghost btn-block mp-btn" bindtap="memGoRide">去这局详情 ›</button>
   </view>
 </view>
