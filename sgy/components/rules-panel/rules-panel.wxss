@@ -1,0 +1,110 @@
+/* components/rules-panel —— 规则半屏面板 */
+.rp-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+.rp-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 91;
+  max-height: 78vh;
+  overflow-y: auto;
+}
+.rp-head {
+  margin-bottom: 20rpx;
+}
+.rp-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+.rp-close {
+  color: #8a9099;
+  font-size: 32rpx;
+  padding: 8rpx 8rpx 8rpx 24rpx;
+}
+
+/* 信用分表格 */
+.rp-table {
+  border: 1rpx solid #f0f1f3;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+.rp-tr {
+  display: flex;
+  align-items: flex-start;
+  padding: 18rpx 20rpx;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.rp-tr:last-child {
+  border-bottom: none;
+}
+.rp-th {
+  background: #f7f8fa;
+  color: #8a9099;
+  font-size: 22rpx;
+  padding: 12rpx 20rpx;
+}
+.rp-td {
+  font-size: 26rpx;
+  line-height: 1.5;
+}
+.rp-ev {
+  width: 170rpx;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #1f2329;
+}
+.rp-no {
+  flex: 1;
+  min-width: 0;
+  color: #4e545c;
+}
+.rp-dv {
+  width: 90rpx;
+  flex-shrink: 0;
+  text-align: right;
+  font-weight: 600;
+}
+.rp-up {
+  color: #07c160;
+}
+.rp-down {
+  color: #fa5151;
+}
+
+.rp-footer {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: #ff9f0a;
+  line-height: 1.6;
+}
+
+/* 隐私与实名分节 */
+.rp-sec {
+  margin-bottom: 28rpx;
+}
+.rp-sec:last-child {
+  margin-bottom: 4rpx;
+}
+.rp-sec-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #07a55a;
+  margin-bottom: 10rpx;
+}
+.rp-sec-line {
+  font-size: 26rpx;
+  color: #4e545c;
+  line-height: 1.7;
+  padding: 4rpx 0;
+}

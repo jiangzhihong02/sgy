@@ -11,6 +11,7 @@
     <view class="seg-item {{tab === 'identity' ? 'active' : ''}}" data-tab="identity" bindtap="onSwitchTab">
       校内身份{{identities.length ? '（' + identities.length + '）' : ''}}
     </view>
+    <view class="seg-item {{tab === 'seed' ? 'active' : ''}}" data-tab="seed" bindtap="onSwitchTab">代发种子局</view>
   </view>
 
   <!-- 举报复核 -->
@@ -75,34 +76,36 @@
     <view wx:else class="card no-margin empty-sm">还没有人登记校内身份</view>
   </block>
 
-  <!-- 代发种子局 -->
-  <view class="section">代发种子局</view>
-  <view class="card no-margin">
-    <view class="field">
-      <view class="field-label">线路</view>
-      <picker class="flex-1" mode="selector" range="{{routeOptions}}" range-key="label" value="{{routeIndex}}" bindchange="onPickRoute">
-        <view class="field-value">{{routeOptions[routeIndex].label}}</view>
-      </picker>
-    </view>
-    <view class="field">
-      <view class="field-label">日期</view>
-      <picker class="flex-1" mode="date" value="{{date}}" start="{{dateStart}}" bindchange="onPickDate">
-        <view class="field-value">{{date}}</view>
-      </picker>
-    </view>
-    <view class="field">
-      <view class="field-label">时间</view>
-      <picker class="flex-1" mode="time" value="{{time}}" start="{{timeStart}}" bindchange="onPickTime">
-        <view class="field-value time-big">{{time}}</view>
-      </picker>
-    </view>
-    <view class="field">
-      <view class="field-label">人数上限</view>
-      <view class="row cap-group">
-        <text wx:for="{{capacityRange}}" wx:key="*this" class="chip cap-chip {{capacity === item ? 'active' : ''}}"
-          data-cap="{{item}}" bindtap="onCapTap">{{item}} 人</text>
+  <!-- 代发种子局（独立第4个 tab；不再常驻于其它 tab 下方） -->
+  <block wx:if="{{tab === 'seed'}}">
+    <view class="section">代发种子局</view>
+    <view class="card no-margin">
+      <view class="field">
+        <view class="field-label">线路</view>
+        <picker class="flex-1" mode="selector" range="{{routeOptions}}" range-key="label" value="{{routeIndex}}" bindchange="onPickRoute">
+          <view class="field-value">{{routeOptions[routeIndex].label}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="field-label">日期</view>
+        <picker class="flex-1" mode="date" value="{{date}}" start="{{dateStart}}" bindchange="onPickDate">
+          <view class="field-value">{{date}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="field-label">时间</view>
+        <picker class="flex-1" mode="time" value="{{time}}" start="{{timeStart}}" bindchange="onPickTime">
+          <view class="field-value time-big">{{time}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <view class="field-label">人数上限</view>
+        <view class="row cap-group">
+          <text wx:for="{{capacityRange}}" wx:key="*this" class="chip cap-chip {{capacity === item ? 'active' : ''}}"
+            data-cap="{{item}}" bindtap="onCapTap">{{item}} 人</text>
+        </view>
       </view>
     </view>
-  </view>
-  <button class="btn btn-primary btn-block" bindtap="onSeed">以我名义代发（作种子局）</button>
+    <button class="btn btn-primary btn-block" bindtap="onSeed">以我名义代发（作种子局）</button>
+  </block>
 </view>

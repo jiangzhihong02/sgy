@@ -128,23 +128,24 @@ Page({
       wx.navigateTo({ url: "/pages/feedback/feedback" });
       return;
     }
-    const modals = {
-      credit: {
-        title: "信用分规则",
-        content: rulesText.creditText(), // 数字与文案单一来源 rides/rules.js（getRules 下发）
-      },
-      privacy: {
-        title: "性别与隐私",
-        content: rulesText.privacyText(),
-      },
-      about: {
+    // 信用分规则 / 隐私与实名：半屏可视化面板（rules-panel 组件，内容单一来源 rides/rules.js）
+    const panel = this.selectComponent("#rulesPanel");
+    if (id === "credit" && panel) {
+      panel.open("credit");
+      return;
+    }
+    if (id === "privacy" && panel) {
+      panel.open("privacy");
+      return;
+    }
+    if (id === "about") {
+      wx.showModal({
         title: "深港拼车",
         content:
           "为深港跨境通勤者（当前：往返香港教育大学的师生）提供拼车局撮合。只组队、不约车、不经手车费，AA 线下进行。",
-      },
-    };
-    const m = modals[id];
-    if (m) wx.showModal({ title: m.title, content: m.content, showCancel: false });
+        showCancel: false,
+      });
+    }
   },
 
   onAdmin() {

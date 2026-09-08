@@ -167,12 +167,33 @@
 .act-row {
   margin-top: 16rpx;
 }
-.act-done {
-  flex: 1;
-  text-align: center;
-  justify-content: center;
-  padding: 18rpx 0;
+/* 主动作：我到了（大主按钮独占一行）/ 已签到态 */
+.act-main {
+  display: block;
+  width: 100%;
   box-sizing: border-box;
+  height: 92rpx;
+  line-height: 92rpx;
+  padding: 0;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 14rpx;
+}
+.act-main-done {
+  background: #e8f9ef;
+  color: #07c160;
+  text-align: center;
+}
+/* 次要动作：退出/解散 小字链接（低频、低调） */
+.act-sub {
+  justify-content: center;
+  margin-top: 20rpx;
+  padding-bottom: 8rpx;
+}
+.act-link {
+  color: #fa5151;
+  font-size: 24rpx;
+  padding: 12rpx 30rpx;
 }
 .chat-empty {
   padding: 20rpx 0 4rpx;

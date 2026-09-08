@@ -19,6 +19,15 @@ const SEAT_OPTIONS = [
 ];
 const CUSTOM = "__custom__";
 
+// 列表末尾温馨提示：轮换文案，仅装饰（不点击、不弹窗、不跳发局）
+const END_TIPS = [
+  "已经翻到底了～没找到合心意的？也可以自己发起一局",
+  "与其干等，不如自己发起一局当发起人",
+  "拼车人越多越划算，发起一局拉上同学吧",
+  "到点口岸的士站人多，早发局更容易凑齐人",
+  "组到 2 人就能成局，别担心人太少",
+];
+
 function inboundPlaces() {
   const seen = [];
   routeSvc.get().filter((r) => r.directionId === "in").forEach((r) => {
@@ -36,11 +45,11 @@ function outboundPlaces() {
 Page({
   data: {
     dirOptions: DIR_OPTIONS,
-    selectedDir: "in",
-    dirLabel: "返校",
+    selectedDir: "all", // 默认全部方向（2026-09-08 起；此前默认返校）
+    dirLabel: "全部方向",
     openKey: "none", // none | dir | place | seat
 
-    placeOptions: inboundPlaces(),
+    placeOptions: [], // 默认全部方向时无上车点筛选；选了具体方向后重建
     placeHeader: "上车点",
     placeValue: "all", // 'all' | from/to 名 | __custom__
     placeLabel: "全部上车点",
@@ -54,6 +63,7 @@ Page({
     loaded: false,
     loadErr: false, // rides.list 拉取失败（区别于"真没有局"）
     invites: [],
+    endTip: "", // 列表末尾温馨提示（轮换，仅装饰）
   },
 
   onLoad() {
@@ -231,7 +241,21 @@ Page({
           joinable: r.status === "recruiting" && r.memberCount < r.capacity,
         };
       });
-    this.setData({ rides: list, loading: false, loaded: true });
+    this.setData({ rides: list, loading: false, loaded: true, endTip: this.pickEndTip(list) });
+  },
+
+  // 列表内容变化时才换一条提示（避免 10s 轮询原地闪文案）；空列表清空
+  pickEndTip(list) {
+    const sig = list.map((r) => r.id).join(",");
+    if (!list.length) {
+      this._endTipSig = "";
+      return "";
+    }
+    if (sig === this._endTipSig) return this.data.endTip;
+    this._endTipSig = sig;
+    let tip = END_TIPS[Math.floor(Math.random() * END_TIPS.length)];
+    if (tip === this.data.endTip) tip = END_TIPS[(END_TIPS.indexOf(tip) + 1) % END_TIPS.length];
+    return tip;
   },
 
   goCreate() {

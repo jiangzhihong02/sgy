@@ -102,15 +102,15 @@
           <view class="small muted">点击队友头像可 查看资料 · 举报 · 下周再约</view>
         </view>
         <block wx:else>
-          <view wx:if="{{canCancel}}" class="row">
-            <button class="btn btn-danger-ghost btn-block" bindtap="onCancel">解散这一局</button>
-          </view>
-          <view class="row act-row">
-            <button wx:if="{{!meChecked}}" class="btn btn-ghost act-half" bindtap="onCheckin">我到了</button>
-            <view wx:else class="tag tag-green act-half act-done">已签到 · 集合吧</view>
-            <button class="btn btn-danger-ghost act-half" bindtap="onLeave">退出</button>
-          </view>
+          <!-- 主动作：我到了（大主按钮独占一行） -->
+          <button wx:if="{{!meChecked}}" class="btn btn-primary act-main" bindtap="onCheckin">我到了</button>
+          <view wx:else class="act-main act-main-done">✅ 已签到 · 集合吧</view>
           <view wx:if="{{!meChecked}}" class="small muted act-tip">到点请点「我到了」；局结束仍未签到将按爽约自动扣信用分</view>
+          <!-- 次要动作：低频小字链接（退出 / 发起人解散，点了再弹确认框） -->
+          <view wx:if="{{canLeave || canCancel}}" class="row act-sub">
+            <text wx:if="{{canLeave}}" class="act-link" bindtap="onLeave">退出</text>
+            <text wx:if="{{canCancel}}" class="act-link" bindtap="onCancel">解散这一局</text>
+          </view>
         </block>
       </block>
 

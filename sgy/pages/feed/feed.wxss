@@ -80,6 +80,13 @@
 .ride-list {
   padding-top: 8rpx;
 }
+.list-end-tip {
+  padding: 28rpx 40rpx 40rpx;
+  text-align: center;
+  color: #a5abb3;
+  font-size: 22rpx;
+  line-height: 1.6;
+}
 .ride-mid {
   margin: 16rpx 0 8rpx;
 }

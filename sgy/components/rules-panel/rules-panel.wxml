@@ -1,0 +1,35 @@
+<!-- components/rules-panel/rules-panel.wxml —— 规则半屏面板 -->
+<view wx:if="{{show}}">
+  <view class="rp-mask" bindtap="close"></view>
+  <view class="rp-panel">
+    <view class="row-between rp-head">
+      <text class="rp-title">{{title}}</text>
+      <text class="rp-close" bindtap="close">✕</text>
+    </view>
+
+    <!-- 信用分：事件｜说明｜分值 表格 -->
+    <block wx:if="{{mode === 'credit'}}">
+      <view class="rp-table">
+        <view class="rp-tr rp-th">
+          <text class="rp-td rp-ev">事件</text>
+          <text class="rp-td rp-no">说明</text>
+          <text class="rp-td rp-dv">分值</text>
+        </view>
+        <view wx:for="{{creditRows}}" wx:key="event" class="rp-tr">
+          <text class="rp-td rp-ev">{{item.event}}</text>
+          <text class="rp-td rp-no">{{item.note}}</text>
+          <text class="rp-td rp-dv {{item.up ? 'rp-up' : 'rp-down'}}">{{item.delta}}</text>
+        </view>
+      </view>
+      <view class="rp-footer">{{creditFooter}}</view>
+    </block>
+
+    <!-- 隐私与实名：三小节排版 -->
+    <block wx:else>
+      <view wx:for="{{privacySections}}" wx:key="title" class="rp-sec">
+        <view class="rp-sec-title">{{item.title}}</view>
+        <view wx:for="{{item.lines}}" wx:for-item="line" wx:key="*this" class="rp-sec-line">{{line}}</view>
+      </view>
+    </block>
+  </view>
+</view>

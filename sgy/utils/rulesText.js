@@ -19,6 +19,37 @@ const FALLBACK = {
     "初始 100，封顶 120。爽约（出发前 30 分钟后退出、或到点没「我到了」）自动 -20；成功同行 +1。拼车结束后，队友可就 迟到(-10) / 缺勤·没来(-20) / 性别不实(-20) 举报：同一局 ≥2 名成员联名即自动坐实，否则转管理员复核。低于 60 暂停发起新局 7 天（仍可加入）。",
   privacyText:
     "性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别与真实不符，会被同车人举报：坐实后清空性别并扣信用分；若同一局有 3 名以上成员同报、或你被多次坐实，则系统把性别改为判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。",
+  creditTable: [
+    { event: "初始", note: "注册即默认", delta: "+100", up: true },
+    { event: "爽约", note: "出发前 30 分钟后退出 / 到点没签到，经 48h 补确认仍没上车或逾期不答", delta: "-20", up: false },
+    { event: "迟到", note: "举报坐实（同局 ≥2 人联名自动，否则管理员复核）", delta: "-10", up: false },
+    { event: "缺勤·没来", note: "举报坐实；谎报「上车了」也靠队友报此条兜底", delta: "-20", up: false },
+    { event: "性别不实", note: "举报坐实，顺带清空性别；多人/多次坐实会反推锁定", delta: "-20", up: false },
+    { event: "成功同行", note: "到点签到且局完成，结算自动", delta: "+1", up: true },
+  ],
+  creditFooter: "封顶 120。低于 60 暂停发起新局 7 天（仍可加入）。",
+  privacySections: [
+    {
+      title: "性别（自报，不验证）",
+      lines: [
+        "仅用于组队/聊天里以头像框颜色辨认（蓝男·粉女）。",
+        "自报不实会被同车人举报：坐实后清空性别并扣 -20。",
+        "同一局 ≥3 名成员同报、或多次坐实 → 系统把性别改为判定的另一性别并锁定，仅管理员可纠正。",
+      ],
+    },
+    {
+      title: "校内身份（自报不核验）",
+      lines: [
+        "登记是威慑与线下好辨认，系统不验证真伪。",
+        "同车人只看到「✓ 校内已登记」绿标，学号与姓名明文不对外。",
+        "学号与姓名仅本人与管理员可见；填错可自行修改，撤销登记需联系管理员。",
+      ],
+    },
+    {
+      title: "联系方式",
+      lines: ["不展示微信号。", "站内联系走局内聊天室。"],
+    },
+  ],
   limits: { msgMax: 200, imgMax: 500000, noteMax: 50 },
 };
 
@@ -45,6 +76,9 @@ const timeline = () => (payload().timeline || []).map((r) => ({ t: r.t, d: r.d }
 const preview = () => payload().preview || "";
 const creditText = () => payload().creditText || "";
 const privacyText = () => payload().privacyText || "";
+const creditTable = () => payload().creditTable || [];
+const creditFooter = () => payload().creditFooter || "";
+const privacySections = () => payload().privacySections || [];
 const imgMax = () => ((payload().limits || {}).imgMax) || 500000;
 
-module.exports = { payload, load, timeline, preview, creditText, privacyText, imgMax };
+module.exports = { payload, load, timeline, preview, creditText, privacyText, creditTable, creditFooter, privacySections, imgMax };

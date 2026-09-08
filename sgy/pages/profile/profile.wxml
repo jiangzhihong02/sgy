@@ -95,4 +95,7 @@
       <button class="btn btn-primary act-half" bindtap="onRegisterSubmit">完成注册</button>
     </view>
   </view>
+
+  <!-- 规则半屏面板（信用分表格 / 隐私与实名分节，云端单一来源） -->
+  <rules-panel id="rulesPanel" />
 </view>

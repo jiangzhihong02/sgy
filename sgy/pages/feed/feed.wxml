@@ -103,6 +103,9 @@
     </view>
   </view>
 
+  <!-- 列表末尾温馨提示（轮换文案，仅装饰） -->
+  <view wx:if="{{rides.length}}" class="list-end-tip">{{endTip}}</view>
+
   <!-- 加载失败（区别于真没有局）：可重试 -->
   <view wx:elif="{{loadErr}}" class="empty">
     <view class="empty-title">加载失败</view>
