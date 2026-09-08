@@ -67,13 +67,7 @@ const RULE_TIMELINE = [
 const PREVIEW_TEXT =
   `最少 2 人成局，人数上限由你设（2–6）。按出发时间倒推：提前 ${MIN_(T_POLL_ASK)} 分钟未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 ${MIN_(T_POLL_DUE)} 分钟）；提前 ${MIN_(T_FREE_EXIT)} 分钟前可自由退出、你可解散；提前 ${MIN_(T_JOIN_CLOSE)} 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，上车后 ${MIN_(T_CHECKIN_GRACE)} 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。`;
 
-// 「我的」页：信用分规则 / 性别与隐私（整段，数字内插自上）
-const CREDIT_TEXT =
-  `初始 ${CREDIT_DEFAULT}，封顶 ${CREDIT_CAP}。爽约（出发前 ${MIN_(T_FREE_EXIT)} 分钟后退出、或到点没「我到了」）自动 ${CREDIT_LEAVE_NO_SHOW}；成功同行 +${CREDIT_RIDE_OK}。拼车结束后，队友可就 迟到(${KIND_DELTA.lateness}) / 缺勤·没来(${KIND_DELTA.absence}) / 性别不实(${KIND_DELTA.gender_fake}) 举报：同一局 ≥2 名成员联名即自动坐实，否则转管理员复核。低于 ${CREDIT_LOW} 暂停发起新局 ${DAYS_(BAN_DAYS_MS)} 天（仍可加入）。`;
-const PRIVACY_TEXT =
-  `性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别与真实不符，会被同车人举报：坐实后清空性别并扣信用分；若同一局有 3 名以上成员同报、或你被多次坐实，则系统把性别改为判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。`;
-
-// —— 信用分表格（可视化面板；数值内插自上，事件行文案静态；与 CREDIT_TEXT 同语义的结构化版）——
+// —— 信用分表格（可视化面板；数值内插自上，事件行文案静态；结构化表述，规则唯一表述格式）——
 const CREDIT_TABLE = [
   { event: "初始", note: "注册即默认", delta: `+${CREDIT_DEFAULT}`, up: true },
   { event: "爽约", note: `出发前 ${MIN_(T_FREE_EXIT)} 分钟后退出 / 到点没签到，经 48h 补确认仍没上车或逾期不答`, delta: `${CREDIT_LEAVE_NO_SHOW}`, up: false },
@@ -84,7 +78,7 @@ const CREDIT_TABLE = [
 ];
 const CREDIT_FOOTER = `封顶 ${CREDIT_CAP}。低于 ${CREDIT_LOW} 暂停发起新局 ${DAYS_(BAN_DAYS_MS)} 天（仍可加入）。`;
 
-// —— 隐私与实名（分节排版；与 PRIVACY_TEXT 同语义的结构化版）——
+// —— 隐私与实名（分节排版；结构化表述）——
 const PRIVACY_SECTIONS = [
   {
     title: "性别（自报，不验证）",
@@ -108,13 +102,11 @@ const PRIVACY_SECTIONS = [
   },
 ];
 
-/** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview/creditText/privacyText 供弹层，creditTable/privacySections 供可视化面板，limits 供前端校验）。 */
+/** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview 供发局页说明，creditTable/creditFooter/privacySections 供可视化面板，limits 供前端校验）。 */
 function rulePayload() {
   return {
     timeline: RULE_TIMELINE,
     preview: PREVIEW_TEXT,
-    creditText: CREDIT_TEXT,
-    privacyText: PRIVACY_TEXT,
     creditTable: CREDIT_TABLE,
     creditFooter: CREDIT_FOOTER,
     privacySections: PRIVACY_SECTIONS,

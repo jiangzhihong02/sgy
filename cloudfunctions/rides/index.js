@@ -45,25 +45,25 @@ const HANDLERS = {
   inviteList: invites.inviteList,
   inviteRespond: invites.respondInvite,
   reinvite: invites.reinvite,
-  // 用户档案 / 信用 / 管理员复核（并入自原 user 云函数，客户端 call 本函数即可）
+  // 用户档案（并入自原 user 云函数，客户端 call 本函数即可）
   login: account.login,
   me: account.me,
   register: account.register,
-  adminPending: account.adminPending,
-  resolveReport: account.resolveReport,
-  banUser: account.banUser,
-  adminSetGender: account.adminSetGender,
   // 校内身份（自报防逃跑威慑；仅绿标对外，明文仅管理员）
   identitySave: account.identitySave,
-  adminIdentities: account.adminIdentities,
-  adminClearIdentity: account.adminClearIdentity,
+  // 管理员子域（复核/封禁/性别纠错/身份管理/联调；名单唯一来源 db.js isAdmin）
+  adminPending: admin.adminPending,
+  resolveReport: admin.resolveReport,
+  banUser: admin.banUser,
+  adminSetGender: admin.adminSetGender,
+  adminIdentities: admin.adminIdentities,
+  adminClearIdentity: admin.adminClearIdentity,
+  adminSeedDone: admin.adminSeedDone,
+  adminReset: admin.adminReset,
   // 用户反馈与建议（仅注册用户；管理员列表/标记）
   feedback: feedback.submit,
   feedbackList: feedback.adminList,
   feedbackHandled: feedback.markHandled,
-  // 管理员联调
-  adminSeedDone: admin.adminSeedDone,
-  adminReset: admin.adminReset,
   // 定时推进
   __sweep: sweep.run,
 };

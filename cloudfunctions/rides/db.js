@@ -11,17 +11,13 @@ const {
   BAN_DAYS_MS,
   T_MIN_GAP,
   T_SAME_DIR,
-  T_JOIN_CLOSE,
-  T_POLL_ASK,
-  T_POLL_DUE,
-  T_SETTLE,
-  CONFIRM_WINDOW_MS,
   CREDIT_RIDE_OK,
   CREDIT_LEAVE_NO_SHOW,
   ACTIVE_STATUS,
   MSG_MAX,
   randNick,
 } = require("./rules");
+const { planAdvance } = require("./advance"); // 状态推进的纯判定（无 IO，可单测；时间常量由其自理）
 
 const ok = (data) => ({ ok: true, data });
 const fail = (err, msg, data = null) => ({ ok: false, err, msg, data });
@@ -89,67 +85,25 @@ function getMember(ride, openid) {
 }
 
 // 到期惰性推进（读时自愈）：把一张局按当前时间就地推进到它该在的状态。
-// 所有状态翻转用"仍处于原状态"的条件更新，避免并发双推进；结算只由翻到 done 的那一方执行，
-// settled 字段防止重复结算。rideSweep 定时器与每次读取共用同一逻辑（不再依赖定时器）。
+// 状态判定的纯逻辑在 advance.js planAdvance()（可单测）；这里只做薄 IO：
+// "仍处于原状态"的条件更新防并发双推进、竞争失败重拉、按 settle/deferred 写信用分。
+// rideSweep 定时器与每次读取共用同一逻辑（不再依赖定时器）。
 async function advanceStatus(raw) {
   let cur = raw;
   let changed = false;
   for (let i = 0; i < 4; i++) {
     const now = Date.now();
-    let patch = null;
-    let settle = false;
-    let deferredPenalty = null; // 到期仍未确认的补签到对象（结算挂起后由本分支落罚）
-    if (cur.status === "recruiting") {
-      if (now >= cur.boardAt - T_JOIN_CLOSE) {
-        patch = { status: cur.memberCount >= 2 ? "locked" : "failed", poll: null, updatedAt: now };
-      } else if (cur.memberCount < cur.capacity) {
-        if (!cur.poll || !cur.poll.active) {
-          if (now >= cur.boardAt - T_POLL_ASK && now < cur.boardAt - T_POLL_DUE) {
-            patch = { poll: { active: true, status: "pending", askedAt: now, dueAt: cur.boardAt - T_POLL_DUE, responses: [] }, updatedAt: now };
-          }
-        } else if (now >= (cur.poll.dueAt || cur.boardAt - T_POLL_DUE)) {
-          patch = { poll: { ...cur.poll, active: false, status: "accepted", responses: cur.poll.responses || [] }, updatedAt: now };
-        }
-      }
-    } else if (cur.status === "locked" && now >= cur.boardAt) {
-      patch = { status: "ongoing", updatedAt: now };
-    } else if (cur.status === "ongoing" && !cur.settled && now >= cur.boardAt + T_SETTLE) {
-      // 结算：已签到 +1；未签到的成员不立即扣分，挂起等"补签到确认"（48h 窗口），到期仍不确认才默认爽约 −20。
-      const pending = (cur.members || []).filter((m) => !(m.checkedInAt && m.checkedInAt > 0)).map((m) => m.openid);
-      const confirmDue = cur.boardAt + T_SETTLE + CONFIRM_WINDOW_MS;
-      const expiredNow = now >= confirmDue; // 极少：结算本来就晚于确认窗口（如补跑）
-      patch = {
-        status: "done",
-        settled: true,
-        noShowConfirmed: (cur.noShowConfirmed || []).concat(expiredNow ? pending : []),
-        pendingConfirm: { dueAt: confirmDue, openids: pending, resolved: [], settled: false },
-        updatedAt: now,
-      };
-      settle = true;
-    } else if (cur.status === "done" && cur.pendingConfirm && !cur.pendingConfirm.settled && now >= (cur.pendingConfirm.dueAt || 0)) {
-      // 补签到确认窗口到期：仍未确认的成员记爽约 −20（已确认的跳过）
-      const pc = cur.pendingConfirm;
-      const un = (pc.openids || []).filter((o) => !(pc.resolved || []).includes(o));
-      const npc = { ...pc, settled: true };
-      patch = un.length
-        ? { pendingConfirm: npc, noShowConfirmed: (cur.noShowConfirmed || []).concat(un), updatedAt: now }
-        : { pendingConfirm: npc, updatedAt: now };
-      deferredPenalty = un.length ? un : null;
-    } else {
-      break; // 当前没有到期的推进
-    }
-    if (!patch) break;
+    const plan = planAdvance(cur, now);
+    if (!plan) break;
+    const { patch, settle, deferredPenalty } = plan;
     const upd = await db.collection("rides").where({ _id: cur._id, status: cur.status }).update({ data: patch });
     const won = !!(upd && upd.stats && upd.stats.updated > 0);
     if (won) {
       changed = true;
       cur = { ...cur, ...patch };
       if (settle) {
-        for (const m of cur.members || []) {
-          if (m.checkedInAt && m.checkedInAt > 0) await applyCreditDelta(m.openid, CREDIT_RIDE_OK);
-          else if (now >= cur.boardAt + T_SETTLE + CONFIRM_WINDOW_MS) await applyCreditDelta(m.openid, CREDIT_LEAVE_NO_SHOW);
-          // 未到确认截止：挂起，待 confirmRide 或 deferred 分支处理
-        }
+        for (const o of settle.plus) await applyCreditDelta(o, CREDIT_RIDE_OK);
+        for (const o of settle.minus) await applyCreditDelta(o, CREDIT_LEAVE_NO_SHOW);
       }
       if (deferredPenalty) {
         for (const o of deferredPenalty) await applyCreditDelta(o, CREDIT_LEAVE_NO_SHOW);
