@@ -72,6 +72,48 @@ button::after {
   line-height: 1.2;
 }
 
+/* ---- 底部浮层（半屏面板）共用：member-sheet / rules-panel / 聊天公约 / 关于 ---- */
+.sheet-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+.sheet-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 91;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+.sheet-close {
+  color: #8a9099;
+  font-size: 32rpx;
+  padding: 8rpx 8rpx 8rpx 24rpx;
+}
+.sheet-agree {
+  margin-top: 24rpx;
+  background: #07c160;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
 /* ---- 行布局 ---- */
 .row {
   display: flex;

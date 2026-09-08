@@ -1,10 +1,10 @@
 <!-- components/rules-panel/rules-panel.wxml —— 规则半屏面板 -->
 <view wx:if="{{show}}">
-  <view class="rp-mask" bindtap="close"></view>
-  <view class="rp-panel">
-    <view class="row-between rp-head">
+  <view class="sheet-mask" bindtap="close"></view>
+  <view class="sheet-panel rp-panel">
+    <view class="sheet-head">
       <text class="rp-title">{{title}}</text>
-      <text class="rp-close" bindtap="close">✕</text>
+      <text class="sheet-close" bindtap="close">✕</text>
     </view>
 
     <!-- 信用分：事件｜说明｜分值 表格 -->

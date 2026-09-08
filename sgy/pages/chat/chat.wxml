@@ -72,16 +72,16 @@
   <member-sheet id="memberSheetChat" />
 
   <!-- 聊天室公约（半屏面板；首次进入某局弹一次） -->
-  <view wx:if="{{showRules}}" class="cr-mask" bindtap="closeRules"></view>
-  <view wx:if="{{showRules}}" class="cr-panel">
-    <view class="row-between cr-head">
+  <view wx:if="{{showRules}}" class="sheet-mask" bindtap="closeRules"></view>
+  <view wx:if="{{showRules}}" class="sheet-panel">
+    <view class="sheet-head">
       <text class="cr-title">聊天室公约</text>
-      <text class="cr-close" bindtap="closeRules">✕</text>
+      <text class="sheet-close" bindtap="closeRules">✕</text>
     </view>
     <view wx:for="{{rules}}" wx:key="t" class="cr-item">
       <view class="cr-item-t">{{item.t}}</view>
       <view class="cr-item-d">{{item.d}}</view>
     </view>
-    <view class="cr-agree" bindtap="closeRules">知道了</view>
+    <view class="sheet-agree" bindtap="closeRules">知道了</view>
   </view>
 </view>

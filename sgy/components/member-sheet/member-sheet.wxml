@@ -1,7 +1,7 @@
 <!-- components/member-sheet/member-sheet.wxml —— 成员资料浮层 -->
 <view wx:if="{{show}}">
-  <view class="ms-mask" bindtap="close"></view>
-  <view class="ms-panel">
+  <view class="sheet-mask" bindtap="close"></view>
+  <view class="sheet-panel ms-panel">
     <view class="row ms-head">
       <view class="avatar ms-avatar {{member.frame}}">{{member.avatarChar}}</view>
       <view class="flex-1 ms-info">
@@ -9,7 +9,7 @@
         <view class="small muted">性别：{{member.genderText}}{{member.credit != null ? ' · 信用分：' + member.credit : ''}}</view>
         <text wx:if="{{member.schoolVerified}}" class="tag tag-green ms-school">✓ 校内已登记</text>
       </view>
-      <text class="ms-close" bindtap="close">✕</text>
+      <text class="sheet-close" bindtap="close">✕</text>
     </view>
 
     <button wx:if="{{!member.isMe && done}}" class="btn btn-ghost btn-block ms-btn" bindtap="onReinvite">下周同一时刻 · 再约 TA</button>

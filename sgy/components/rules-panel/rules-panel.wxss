@@ -1,36 +1,11 @@
-/* components/rules-panel —— 规则半屏面板 */
-.rp-mask {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 90;
-}
+/* components/rules-panel —— 规则半屏面板（遮罩/面板/头部/关闭 用 app.wxss sheet-* 共用） */
 .rp-panel {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 28rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
-  z-index: 91;
   max-height: 78vh;
   overflow-y: auto;
-}
-.rp-head {
-  margin-bottom: 20rpx;
 }
 .rp-title {
   font-size: 34rpx;
   font-weight: 700;
-}
-.rp-close {
-  color: #8a9099;
-  font-size: 32rpx;
-  padding: 8rpx 8rpx 8rpx 24rpx;
 }
 
 /* 信用分表格 */
