@@ -78,8 +78,4 @@ Page({
       wx.showModal({ title: "保存失败", content: res.msg || "请重试", showCancel: false });
     }
   },
-
-  goBack() {
-    wx.navigateBack();
-  },
 });

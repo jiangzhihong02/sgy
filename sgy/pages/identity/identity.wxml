@@ -26,5 +26,4 @@
   <button class="btn btn-primary btn-block" bindtap="onSubmit" disabled="{{submitting}}">
     {{declared ? '保存修改' : '登记校内身份'}}
   </button>
-  <view class="cancel" bindtap="goBack">返回</view>
 </view>

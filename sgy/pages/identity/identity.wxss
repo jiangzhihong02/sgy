@@ -27,8 +27,3 @@
   margin: 20rpx 4rpx 28rpx;
   line-height: 1.6;
 }
-.cancel {
-  text-align: center;
-  color: #8a9099;
-  margin-top: 28rpx;
-}
