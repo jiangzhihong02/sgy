@@ -103,8 +103,9 @@
     </view>
   </view>
 
-  <view class="rules-tip small muted" bindtap="onPreviewRule">
-    ℹ️ 一局的成立规则（T−60 轮询 · T−30 自由退出 · T−10 关局 ≥2 人成局）点这里查看
+  <view class="rules-tip small" bindtap="onPreviewRule">
+    <view class="muted">ℹ️ 一局的成立规则（T−60 轮询 · T−30 自由退出 · T−10 关局 ≥2 人成局）</view>
+    <view class="link">点这里查看规则 ›</view>
   </view>
 
   <!-- 发局冲突提示卡：居中 + 上下对比小表 -->

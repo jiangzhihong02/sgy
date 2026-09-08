@@ -62,6 +62,11 @@ button::after {
 .warn {
   color: #ff9f0a;
 }
+/* 可点文字：蓝 + 下划线，明确"能点开"的暗示 */
+.link {
+  color: #3d8bfd;
+  text-decoration: underline;
+}
 
 /* ---- 行布局 ---- */
 .row {

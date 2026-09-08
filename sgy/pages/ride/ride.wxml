@@ -16,7 +16,7 @@
           <text class="tag {{ride.statusCls}}">{{ride.statusLabel}}</text>
           <text wx:if="{{ride.urgent}}" class="tag tag-urgent">加急</text>
         </view>
-        <text class="small muted" bindtap="onRule">规则 ›</text>
+        <text class="small link" bindtap="onRule">规则 ›</text>
       </view>
       <view class="route">{{ride.routeLabel}}</view>
       <view class="row-between hero-mid">

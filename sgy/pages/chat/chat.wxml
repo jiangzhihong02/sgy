@@ -20,7 +20,7 @@
             <view class="room-time">{{curDay}}</view>
             <view class="room-route">{{curRoute}}</view>
           </view>
-          <view class="small muted">点此查看队伍详情</view>
+          <view class="small link">点此查看队伍详情</view>
         </view>
         <text class="tag {{curStatusCls}}">{{curSub}}</text>
       </view>
