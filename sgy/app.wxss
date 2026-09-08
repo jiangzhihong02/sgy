@@ -62,10 +62,14 @@ button::after {
 .warn {
   color: #ff9f0a;
 }
-/* 可点文字：蓝 + 下划线，明确"能点开"的暗示 */
+/* 可点文字：蓝 + 下划线（用 border-bottom 画线留出空隙；text-decoration 贴字形无法调距） */
 .link {
   color: #3d8bfd;
-  text-decoration: underline;
+  text-decoration: none;
+  display: inline-block;
+  padding-bottom: 6rpx;
+  border-bottom: 2rpx solid currentColor;
+  line-height: 1.2;
 }
 
 /* ---- 行布局 ---- */
