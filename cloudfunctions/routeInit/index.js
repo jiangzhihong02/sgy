@@ -4,7 +4,7 @@ const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
 
-const COLLECTIONS = ["users", "routes", "rides", "messages", "reports", "invites", "blocks"];
+const COLLECTIONS = ["users", "routes", "rides", "messages", "reports", "invites", "blocks", "feedbacks"];
 
 // 一期 7 条线路（见 docs/DESIGN.md「线路目录」，均为香港侧上车/下车）
 // 命名约定：口岸保留"的士站"；大埔墟本身就是"站"，不加"的士站"。

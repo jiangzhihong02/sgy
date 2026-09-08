@@ -14,7 +14,7 @@
 
 1. **开通云开发**：开发者工具右上角「云开发」→ 创建环境 → 复制**环境 ID**。
 2. **填环境 ID**：`sgy/app.js` 的 `globalData.env = "你的环境ID"`。
-3. **上传云函数**：分别右键 `cloudfunctions/routeInit`、`rides`、`rideSweep` →「上传并部署：云端安装依赖」。`rides` 已含原 `user` 能力，请在云开发控制台**删除旧的 `user` 函数**；首次用反馈前确保 **`feedbacks` 集合存在**（控制台建或随 routeInit 建）。`rideSweep` 的定时触发器在 `config.json`，上传后可在「云开发控制台 → 云函数 → rideSweep → 触发器」确认每分钟一次。
+3. **上传云函数**：分别右键 `cloudfunctions/routeInit`、`rides`、`rideSweep` →「上传并部署：云端安装依赖」。`rides` 已含原 `user` 能力，请在云开发控制台**删除旧的 `user` 函数**；`routeInit` 会幂等建齐 `users/routes/rides/messages/reports/invites/blocks/feedbacks`。`rideSweep` 的定时触发器在 `config.json`，上传后可在「云开发控制台 → 云函数 → rideSweep → 触发器」确认每分钟一次。
 4. **初始化一次**：调用 `routeInit`（开发者工具 → 云开发控制台 → 云函数 → routeInit → 云端测试，event 给 `{}`，或从临时页面 `wx.cloud.callFunction({ name:'routeInit' })`）。它幂等建集合并写入线路。
 5. **建索引**（云开发控制台 → 数据库 → 各集合 → 索引），按 `SPEC.md §0`：
    - `rides`：① `status + boardAt` ② `directionId + boardAt + status` ③ 单字段 `memberOpenids`

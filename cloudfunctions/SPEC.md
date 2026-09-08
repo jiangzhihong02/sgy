@@ -16,6 +16,7 @@
   - `messages`：(rideId + createdAt)
   - `reports`：(rideId)、(status)
   - `users`：(openid)
+  - `feedbacks`：(status)
 
 ## 0b. 近期修订（2026-09，详见 docs/adr/0010）
 
