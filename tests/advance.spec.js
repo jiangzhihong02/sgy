@@ -42,6 +42,23 @@ check("recruiting <2 → 未成局 failed", () => {
   assert.strictEqual(p.patch.status, "failed");
 });
 
+check("加急局 T−5 关局：now=boardAt−5min → locked", () => {
+  const p = planAdvance(ride({ urgent: true, memberCount: 2 }), T - 5 * MIN);
+  assert(p, "加急局应到 T−5 关局");
+  assert.strictEqual(p.patch.status, "locked");
+});
+
+check("加急局未到 T−5（now=boardAt−7min）→ 无推进", () => {
+  const p = planAdvance(ride({ urgent: true, memberCount: 2 }), T - 7 * MIN);
+  assert.strictEqual(p, null, "加急局 T−5 前不应关局");
+});
+
+check("普通局 T−10 关局：now=boardAt−7min → locked", () => {
+  const p = planAdvance(ride({ memberCount: 2 }), T - 7 * MIN);
+  assert(p, "普通局应到 T−10 关局");
+  assert.strictEqual(p.patch.status, "locked");
+});
+
 check("recruiting 未满且 T−60 → 建人数轮询", () => {
   const p = planAdvance(ride({ memberCount: 1 }), T - T_POLL_ASK);
   assert(p, "应有推进");

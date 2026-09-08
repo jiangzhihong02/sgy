@@ -1,5 +1,5 @@
 // queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 聊天拉取
-const { T_JOIN_CLOSE, T_FREE_EXIT, ACTIVE_STATUS, canCheckin, rulePayload } = require("./rules");
+const { T_FREE_EXIT, ACTIVE_STATUS, canCheckin, rulePayload, joinCloseMs } = require("./rules");
 const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf, advanceMany } = require("./db");
 
 const view = (r) => ({
@@ -10,6 +10,7 @@ const view = (r) => ({
   to: r.to,
   routeLabel: `${r.from} → ${r.to}`,
   boardAt: r.boardAt,
+  urgent: !!r.urgent, // 加急局标记（找局红标/排序语义）
   capacity: r.capacity,
   memberCount: r.memberCount,
   status: r.status,
@@ -59,7 +60,7 @@ async function detail(event, openid) {
   const d = {
     ...view(ride),
     members: ride.members.map((m) => ({ openid: m.openid, name: m.name, role: m.role, gender: m.gender || "", checkedInAt: m.checkedInAt })),
-    canJoin: ride.status === "recruiting" && ride.memberCount < ride.capacity && !me && now <= ride.boardAt - T_JOIN_CLOSE,
+    canJoin: ride.status === "recruiting" && ride.memberCount < ride.capacity && !me && now <= ride.boardAt - joinCloseMs(ride),
     canCheckin: canCheckin(ride, me, now),
     canCancel: ride.hostOpenid === openid && now < ride.boardAt - T_FREE_EXIT,
     isMember: !!me,

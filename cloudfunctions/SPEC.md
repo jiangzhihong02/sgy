@@ -28,6 +28,7 @@
 - **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
 - **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
 - **聊天室生命周期（2026-09-08）**：局完成后保留 48h（`chatKeepMs = T_SETTLE + CONFIRM_WINDOW_MS`），期间仍可发言（补 AA 账）；过后 `sendMessage` 返回 `CHAT_CLOSED`；历史消息随时可在「行程」查看。
+- **加急局（2026-09-08）**：`create` 接受 `urgent`——出发前 15–30 分钟（`URGENT_MIN_LEAD`/`URGENT_WINDOW`）内可发起，绕开 `TOO_SOON`；`rides.urgent` 标记；关局/`canJoin`/加入窗口统一用 `joinCloseMs`（加急 T−5、正常 T−10）；凑不齐 2 人自动 `failed`（与正常未成局一致，不计爽约、不扣发起人分）。
 - **云函数收敛（2026-09-07）**：独立 `user` 云函数删除、并入 `rides`（用户动作见 `rides/account.js`，客户端统一 `call('rides', …)`）；管理员名单收敛到 `rides/db.js`；性别不实分级收敛到 `rides/gender.js`（`social.complaint` 与 `account.resolveReport` 共用）。
 
 ## 1. 集合与文档结构
@@ -100,6 +101,7 @@
 
 ```
 T_JOIN_CLOSE = 10 * 60_000     // T−10 停止加入
+T_JOIN_CLOSE_URGENT = 5 * 60_000 // 加急局关局点：T−5 停止加入（正常 T−10；唯一来源 rides/rules.js joinCloseMs）
 T_FREE_EXIT  = 30 * 60_000     // T−30 自由退出/解散截止
 T_MIN_GAP    = 60 * 60_000     // 任意方向两局须相隔 ≥1h
 T_SAME_DIR   = 120 * 60_000    // 同方向两局须相隔 ≥2h（往返的士约 1h + 缓冲；唯一来源 rides/rules.js）
@@ -108,6 +110,8 @@ T_POLL_DUE   = 45 * 60_000     // T−45 轮询截止（未回默认接受）
 T_CHECKIN_GRACE = 10 * 60_000  // T+10 停止"我到了"签到
 T_SETTLE     = 45 * 60_000     // 上车后 45min 自动结算 done（深港单程最慢约 45 分钟，行程结束即结算、尽早进补签确认窗口；此前 2h→1h，2026-09-08 定稿；唯一来源 rides/rules.js）
 CONFIRM_WINDOW_MS = 48 * 60 * 60_000  // 结算后"补签到确认"窗口：未签到成员 48h 内弹窗确认是否上车，逾期默认爽约（唯一来源 rides/rules.js）
+URGENT_MIN_LEAD = 15 * 60_000  // 加急局最早提前 15 分钟发起（留出加入窗口）
+URGENT_WINDOW   = 30 * 60_000  // 加急局窗口：出发前 30 分钟内
 ```
 
 ## 3. 拼车局状态机（rideSweep 定时推进 + 用户动作触发）
@@ -158,7 +162,7 @@ ongoing
 
 ### `rides`（主业务）
 `exports.main = async (event)`，按 `event.action` 分发：
-- `create`：入 `{ routeId, date, time, capacity, note }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009），`directionId='in'` 时可传 `from` 作自定义上车点（ADR-0014，均 ≤14 字）。出 `{ rideId }`。
+- `create`：入 `{ routeId, date, time, capacity, note, urgent? }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009），`directionId='in'` 时可传 `from` 作自定义上车点（ADR-0014，均 ≤14 字）。`urgent=true` 时允许出发前 15–30 分钟（绕开 TOO_SOON），存 `rides.urgent`。出 `{ rideId }`。
 - `list`：入 `{ directionId?, pickup?, date? }` 可选。出未出发局数组（供"找局"，含 members 精简视图与 poll 状态）。默认只返回 `status∈{recruiting,locked}` 且 `boardAt > now − 某窗口`。
 - `my`：出我参与/发起的局（ongoing 进行中 / done 历史），不带消息。
 - `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到，+ 最新 N 条 messages。

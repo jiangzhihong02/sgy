@@ -5,6 +5,7 @@ const MIN = 60 * 1000;
 
 // —— 时间线（毫秒）——
 const T_JOIN_CLOSE = 10 * MIN; // T−10 停止加入/关局
+const T_JOIN_CLOSE_URGENT = 5 * MIN; // 加急局关局点：T−5 停止加入（比正常晚，给临时响应者留时间；见 CONTEXT 加急局）
 const T_FREE_EXIT = 30 * MIN; // T−30 自由退出/解散截止
 const T_MIN_GAP = 60 * MIN; // 同人两个未出发局须相隔 ≥1h（任何方向：不能同时上两辆的士）
 const T_SAME_DIR = 120 * MIN; // 同方向（返校×返校 / 离校×离校）须相隔 ≥2h（往返的士约 1h + 缓冲）
@@ -13,6 +14,12 @@ const T_POLL_DUE = 45 * MIN; // T−45 轮询截止（未回复默认接受）
 const T_CHECKIN_GRACE = 10 * MIN; // T+10 停止"我到了"签到
 const T_SETTLE = 45 * MIN; // 上车后 45 分钟自动结算（深港单程最慢约 45 分钟，行程结束即结算、尽早进入补签确认窗口；此前曾为 2h→1h，2026-09-08 定稿 45min）
 const CONFIRM_WINDOW_MS = 48 * 3600 * 1000; // 结算后"补签到确认"窗口：到点没签到的成员 48h 内可弹窗确认是否上车（见 CONTEXT 签到）
+// —— 加急局（2026-09-08，见 CONTEXT 加急局）——
+const URGENT_MIN_LEAD = 15 * MIN; // 加急局最早提前 15 分钟发起（留出别人看到+加入的窗口）
+const URGENT_WINDOW = 30 * MIN; // 加急局窗口：出发前 30 分钟内
+
+/** 关局提前量：加急局 T−5、正常局 T−10（advance/join/detail canJoin 共用，避免口径分叉）。 */
+const joinCloseMs = (ride) => (ride && ride.urgent ? T_JOIN_CLOSE_URGENT : T_JOIN_CLOSE);
 
 // —— 信用分（数值参数）——
 const CREDIT_DEFAULT = 100;
@@ -115,12 +122,15 @@ function rulePayload() {
       imgMax: MSG_IMG_MAX,
       noteMax: NOTE_MAX,
       chatKeepMs: T_SETTLE + CONFIRM_WINDOW_MS, // 聊天室保留窗：结算后 48h（与补签确认同宽），过后服务端禁发
+      urgentMinLead: URGENT_MIN_LEAD, // 加急局最早提前量（客户端时间下限）
+      urgentWindow: URGENT_WINDOW, // 加急局窗口（客户端判定勾选可用）
     },
   };
 }
 
 module.exports = {
   T_JOIN_CLOSE,
+  T_JOIN_CLOSE_URGENT,
   T_FREE_EXIT,
   T_MIN_GAP,
   T_SAME_DIR,
@@ -129,6 +139,9 @@ module.exports = {
   T_CHECKIN_GRACE,
   T_SETTLE,
   CONFIRM_WINDOW_MS,
+  URGENT_MIN_LEAD,
+  URGENT_WINDOW,
+  joinCloseMs,
   CREDIT_DEFAULT,
   CREDIT_CAP,
   CREDIT_LOW,

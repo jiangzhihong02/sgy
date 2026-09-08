@@ -1,6 +1,5 @@
 // lifecycle.js —— 拼车局生命周期动作：发 / 加 / 退 / 解 / 签 / 轮询应答 / 改备注
 const {
-  T_JOIN_CLOSE,
   T_FREE_EXIT,
   T_MIN_GAP,
   T_SAME_DIR,
@@ -9,6 +8,9 @@ const {
   CREDIT_RIDE_OK,
   T_POLL_DUE,
   T_CHECKIN_GRACE,
+  URGENT_MIN_LEAD,
+  URGENT_WINDOW,
+  joinCloseMs,
   PARTICIPANT_STATUS,
   ACTIVE_STATUS,
   NOTE_MAX,
@@ -39,6 +41,7 @@ function conflictMsg(conf, boardAt, directionId) {
 
 async function create(event, openid) {
   const { date, time, womenOnly = false, note = "" } = event;
+  const urgent = !!event.urgent; // 加急局：30 分钟内出发、T−5 关局、凑不齐自动作废不扣发起人分（见 CONTEXT 加急局）
   const capacity = Number.isFinite(Number(event.capacity)) ? Math.min(6, Math.max(2, Math.round(Number(event.capacity)))) : 4; // 2–6 钳制，默认 4
   let route = null;
 
@@ -61,7 +64,13 @@ async function create(event, openid) {
   }
 
   const boardAt = event.boardAt ? Number(event.boardAt) : dateTimeToMs(date, time);
-  if (!boardAt || boardAt - Date.now() <= T_FREE_EXIT) {
+  if (!boardAt) return fail("BAD_TIME", "请选择出发时间");
+  if (urgent) {
+    // 加急局：提前 15–30 分钟（比正常局的 ≥30 分钟更松，绕开 TOO_SOON）
+    const lead = boardAt - Date.now();
+    if (lead < URGENT_MIN_LEAD) return fail("TOO_SOON_URGENT", "加急局最早提前 15 分钟发起（留出别人看到、加入的时间）");
+    if (lead > URGENT_WINDOW) return fail("URGENT_WINDOW", "加急仅限 30 分钟内出发；超时可取消加急按普通局发起");
+  } else if (boardAt - Date.now() <= T_FREE_EXIT) {
     return fail("TOO_SOON", "出发时间需至少晚于当前 30 分钟，好让别人能加入");
   }
 
@@ -89,6 +98,7 @@ async function create(event, openid) {
       womenOnly,
       note,
       status: "recruiting",
+      urgent,
       hostOpenid: openid,
       memberCount: 1,
       members: [member],
@@ -111,7 +121,7 @@ async function join(event, openid) {
   if (ride.status !== "recruiting") return fail("NOT_OPEN", "这一局已停止加入");
   if (ride.memberCount >= ride.capacity) return fail("FULL", "这一局已满员");
   if (getMember(ride, openid)) return fail("ALREADY_IN", "你已在这一局里");
-  if (now > ride.boardAt - T_JOIN_CLOSE) return fail("CLOSED", "距上车不足 10 分钟，已停止加入");
+  if (now > ride.boardAt - joinCloseMs(ride)) return fail("CLOSED", "已停止加入（出发在即）");
   const conf = await findTimeConflict(openid, ride.boardAt, ride.directionId);
   if (conf) {
     const msg = conflictMsg(conf, ride.boardAt, ride.directionId) || "你已有出发时间太近的进行中拼车局，请先退出";

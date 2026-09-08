@@ -11,11 +11,11 @@
 //         done + pendingConfirm 到期 → 未确认者记爽约（deferredPenalty）
 //   调用方（db.advanceStatus）负责：条件原子更新、竞争重拉、按 settle/deferred 写信用分。
 const {
-  T_JOIN_CLOSE,
   T_POLL_ASK,
   T_POLL_DUE,
   T_SETTLE,
   CONFIRM_WINDOW_MS,
+  joinCloseMs, // 关局提前量：加急局 T−5、正常局 T−10
 } = require("./rules");
 
 function planAdvance(raw, now) {
@@ -25,7 +25,7 @@ function planAdvance(raw, now) {
   let deferredPenalty = null;
 
   if (cur.status === "recruiting") {
-    if (now >= cur.boardAt - T_JOIN_CLOSE) {
+    if (now >= cur.boardAt - joinCloseMs(cur)) {
       patch = { status: cur.memberCount >= 2 ? "locked" : "failed", poll: null, updatedAt: now };
     } else if (cur.memberCount < cur.capacity) {
       if (!cur.poll || !cur.poll.active) {
