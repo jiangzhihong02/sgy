@@ -132,8 +132,9 @@ Page({
   },
 
   async onJoin() {
-    // 加急局成员侧承诺：出发在即已过免费退出线，加入后中途退出计爽约（见 CONTEXT 加急局）
-    if (this.data.ride && this.data.ride.urgent && !this._urgentJoinConfirmed) {
+    const ride = this.data.ride;
+    // 加急局成员侧承诺：出发在即已过免费退出线，加入后中途退出计爽约（覆盖近临出发提示，不叠弹窗）
+    if (ride && ride.urgent && !this._urgentJoinConfirmed) {
       wx.showModal({
         title: "加入加急局？",
         content: "加急局出发在即（30 分钟内）：加入后中途退出计爽约、扣信用分。确认加入？",
@@ -142,6 +143,22 @@ Page({
         success: (r) => {
           if (r.confirm) {
             this._urgentJoinConfirmed = true;
+            this.onJoin();
+          }
+        },
+      });
+      return;
+    }
+    // 非加急、距发车 < 1 小时：提示可能来不及 / 凑不齐（凑不齐自动取消、不计爽约）
+    if (ride && !ride.urgent && !this._nearJoinConfirmed && ride.boardAt - Date.now() < 60 * 60000) {
+      wx.showModal({
+        title: "确认加入？",
+        content: "距发车不到 1 小时：可能来不及集合，也可能凑不齐人。凑不齐会自动取消，不计爽约。确定加入吗？",
+        confirmText: "确定加入",
+        cancelText: "再想想",
+        success: (r) => {
+          if (r.confirm) {
+            this._nearJoinConfirmed = true;
             this.onJoin();
           }
         },
