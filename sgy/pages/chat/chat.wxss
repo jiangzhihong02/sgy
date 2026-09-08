@@ -34,9 +34,8 @@
   font-size: 30rpx;
   font-weight: 600;
   margin-bottom: 4rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.45; /* 预览：允许换行显示时间+起终点，看看效果 */
+  word-break: break-all;
   padding-right: 16rpx;
 }
 .room-switch {
