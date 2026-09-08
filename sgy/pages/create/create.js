@@ -8,6 +8,7 @@ const rulesText = require("../../utils/rulesText.js");
 // 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
 const HOURS = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
 const MINS = ["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"];
+const NORMAL_MIN_LEAD = 31 * 60000; // 普通局最早提前量（服务端 TOO_SOON >30min，前端取整到 31min）
 function timeIndexes(time) {
   const parts = String(time || "00:00").split(":");
   const hh = Math.max(0, Math.min(23, Number(parts[0]) || 0));
@@ -156,14 +157,19 @@ Page({
     this.setData({ customDest: e.detail.value });
   },
 
+  // 所选时间距现在还有多少毫秒（加急/普通共用；date=YYYY-MM-DD，time=HH:mm）
+  _leadOf(date, time) {
+    return new Date(`${date}T${time}:00+08:00`).getTime() - Date.now();
+  },
+
   // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）；加急局下限 15 分钟、窗口 30 分钟
   onPickTimeM(e) {
     const v = e.detail.value || [];
     const hh = HOURS[v[0]] || "00";
     const mm = MINS[v[1]] || "00";
     const t = `${hh}:${mm}`;
-    const lead = new Date(`${this.data.date}T${t}:00+08:00`).getTime() - Date.now();
-    const minLead = this.data.urgent ? rulesText.urgentMinLead() : 31 * 60000;
+    const lead = this._leadOf(this.data.date, t);
+    const minLead = this.data.urgent ? rulesText.urgentMinLead() : NORMAL_MIN_LEAD;
     if (lead < minLead) {
       wx.showToast({ title: this.data.urgent ? "加急局最早提前 15 分钟发起" : "出发时间不能早于当前 31 分钟", icon: "none" });
       return;
@@ -180,7 +186,7 @@ Page({
     const patch = { date };
     // 选今天 → 时间下限=当前+31 分钟（加急 15 分钟）；选未来 → 不限（避免出现早于现在的选项）
     if (date === this._today) {
-      const start = fmtTime(Date.now() + (this.data.urgent ? rulesText.urgentMinLead() : 31 * 60000));
+      const start = fmtTime(Date.now() + (this.data.urgent ? rulesText.urgentMinLead() : NORMAL_MIN_LEAD));
       patch.timeStart = start;
       if (this.data.time && this.data.time < start) patch.time = start;
     } else {
@@ -225,7 +231,7 @@ Page({
       this.setData({ urgent: false });
       return;
     }
-    const lead = new Date(`${this.data.date}T${this.data.time}:00+08:00`).getTime() - Date.now();
+    const lead = this._leadOf(this.data.date, this.data.time);
     if (lead > rulesText.urgentWindow() || lead < rulesText.urgentMinLead()) {
       wx.showToast({ title: "先把上车时间调到 15–30 分钟内，再勾加急", icon: "none" });
       return;
