@@ -1,6 +1,7 @@
 // pages/trips/trips.js —— Tab2 行程（已接云 rides.my）
 const api = require("../../utils/api.js");
 const { cardOf } = require("../../utils/rideView.js");
+const confirmRide = require("../../utils/confirmRide.js");
 
 Page({
   data: {
@@ -20,6 +21,7 @@ Page({
   onShow() {
     // 从详情返回后数据可能有变（加入/退出/状态推进）
     if (this.data.loaded) this.refresh();
+    confirmRide.maybePromptOnce(); // 补签到确认（结算后未签到者 48h 内被问）
   },
 
   onPullDownRefresh() {

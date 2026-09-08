@@ -2,7 +2,7 @@
 // 逻辑：显示"我参与的、尚未结束(recruiting/locked/ongoing)"的队伍聊天室。
 // 一个都没有 → 占位文案引导去组队；有一两个 → 切换聊天室直接看消息（最多两个：早上返校 ongoing + 晚上离校 recruiting 等）。
 const api = require("../../utils/api.js");
-const { fmtTime, frameCls } = require("../../utils/domain.js");
+const { fmtTime, frameCls, shortPoint } = require("../../utils/domain.js");
 const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const autopoll = require("../../utils/autopoll.js");
 const rulesText = require("../../utils/rulesText.js"); // 图片上限与服务端 MSG_IMG_MAX 同一来源（getRules 下发，快照兜底）
@@ -67,7 +67,8 @@ Page({
       const c = cardOf(r);
       return {
         rideId: r._id,
-        label: `${c.dayText} ${c.routeLabel}`,
+        label: `${c.dayText} ${c.routeLabel}`, // 顶部队伍条：完整
+        short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写（日期时间 + 起终点简写）
         statusLabel: c.statusLabel,
       };
     });

@@ -4,6 +4,7 @@ const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { cardOf, avatarSlots } = require("../../utils/rideView.js");
 const autopoll = require("../../utils/autopoll.js");
+const confirmRide = require("../../utils/confirmRide.js");
 
 const DIR_OPTIONS = [
   { id: "in", label: "返校" },
@@ -63,6 +64,7 @@ Page({
   onShow() {
     if (this.data.loaded) this.refresh();
     this._feedPoll.start();
+    confirmRide.maybePromptOnce(); // 补签到确认（结算后未签到者 48h 内被问）
   },
   onHide() {
     this._feedPoll.stop();

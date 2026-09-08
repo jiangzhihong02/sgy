@@ -30,7 +30,7 @@
         class="room-chip {{curRideId === item.rideId ? 'active' : ''}}"
         data-id="{{item.rideId}}"
         bindtap="onSwitchRoom"
-      >{{item.label}}</view>
+      >{{item.short}}</view>
     </scroll-view>
     <view wx:if="{{rooms.length > 1}}" class="small muted switch-hint">在多个队伍时可切换聊天室</view>
 

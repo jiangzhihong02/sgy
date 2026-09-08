@@ -77,6 +77,7 @@
 | `noShowConfirmed` | array of openid（结算期自动确认的爽约，便于展示） |
 | `createdAt` / `updatedAt` | number ms |
 | `settled` | bool，done 结算是否已执行 |
+| `pendingConfirm` | object \| null，结算时对未签到成员挂起 `{ dueAt, openids[], resolved[], settled }`，供补签到确认（confirmPending/confirmRide） |
 
 ### messages（局内聊天）
 `{ rideId, openid, name, text, createdAt }`
@@ -104,6 +105,7 @@ T_POLL_ASK   = 60 * 60_000     // T−60 人数轮询
 T_POLL_DUE   = 45 * 60_000     // T−45 轮询截止（未回默认接受）
 T_CHECKIN_GRACE = 10 * 60_000  // T+10 停止"我到了"签到
 T_SETTLE     = 60 * 60_000     // 上车后 1h 自动结算 done（此前为 2h，2026-09 定稿；唯一来源 rides/rules.js）
+CONFIRM_WINDOW_MS = 48 * 60 * 60_000  // 结算后"补签到确认"窗口：未签到成员 48h 内弹窗确认是否上车，逾期默认爽约（唯一来源 rides/rules.js）
 ```
 
 ## 3. 拼车局状态机（rideSweep 定时推进 + 用户动作触发）
@@ -130,9 +132,11 @@ ongoing
 ## 4. 结算与信用分（rideSweep 在 done 时执行，`settled` 防重入）
 
 - 规则：初始 100，`<60` 暂停发起 7 天（封禁到期 `bannedUntil = now + 7d`），封顶 120。
-- done 结算：
+- done 结算（读时自愈 + rideSweep，`settled` 防重入）：
   - 每位 **checkedInAt>0** 的成员 `credit +1`（封顶 120）。
-  - 到点仍未 checkin 且未 leave 且未被手动移除的成员 → 记为爽约：直接 `credit −20`（确定无疑的情形，无需管理员），并把 openid 记入 `ride.noShowConfirmed`。
+  - 到点仍未 checkin 且未 leave 且未被手动移除的成员 → **不立即扣分**，挂入 `ride.pendingConfirm`（`dueAt = boardAt + T_SETTLE + CONFIRM_WINDOW_MS`，48h）。
+  - **补签到确认**：`confirmPending` 列出窗口内我待确认的局；`confirmRide { rideId, rode }`——`rode=true` → 补记为已签到（`checkedInAt` 补写）并 `credit +1`；`rode=false` → `credit −20` 并记入 `ride.noShowConfirmed`。**窗口到期仍未确认**（读时/`__sweep` 推进）→ 按爽约 `credit −20` 并记入 `noShowConfirmed`。
+  - 谎报"上车了"由队友在局 done 后举报「缺勤没来」兜底（见 §0b complaint）。
 - **leave 在 T−T_FREE_EXIT 之后**触发时同步扣 `−20`。
 - **迟到/缺勤/性别不实**在局 `done` 后由同局成员 `complaint` 举报（性别不实随时可报）：≥2 人联名自动坐实取最重扣分一次，否则转管理员 `resolveReport` 复核（坐实按 §0b kind 定分；`gender_fake` 顺带清空性别）。
 - **签到后放鸽子 / 乱标申诉**等早期 `no_show/false_report/appeal` 流程已下线，存量字段不再新产生。
@@ -160,6 +164,7 @@ ongoing
 - `leave`：入 `{ rideId }`。规则见 §3.4，含发起人移交/空局取消。
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
 - `checkin`：入 `{ rideId }`。规则见 §3.6。
+- `confirmPending` / `confirmRide`：补签到确认。`confirmPending` 出我待确认的已完成局（窗口内、未处理）；`confirmRide` 入 `{ rideId, rode: true|false }`，见 §4 补签到确认。
 - `respondPoll`：入 `{ rideId, accept }`。见 §5。
 - `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
 - `memberInfo` / `block`：成员资料（含信用/是否已标记/`schoolVerified` 仅绿标）与"不与其乘车"标记。

@@ -6,6 +6,7 @@ const {
   T_SAME_DIR,
   CREDIT_LOW,
   CREDIT_LEAVE_NO_SHOW,
+  CREDIT_RIDE_OK,
   T_POLL_DUE,
   T_CHECKIN_GRACE,
   PARTICIPANT_STATUS,
@@ -253,6 +254,49 @@ async function updateNote(event, openid) {
   return ok({ note });
 }
 
+// 补签到确认：列出"我"待确认的已完成局（结算后未签到、仍在确认窗口内）
+async function confirmPending(event, openid) {
+  const res = await db.collection("rides").where({ memberOpenids: openid, status: "done" }).limit(50).get();
+  const now = Date.now();
+  const list = [];
+  for (const r of res.data || []) {
+    const pc = r.pendingConfirm;
+    if (pc && !pc.settled && now < pc.dueAt && (pc.openids || []).includes(openid) && !(pc.resolved || []).includes(openid)) {
+      list.push({ rideId: r._id, routeLabel: `${r.from || ""} → ${r.to || ""}`, boardAt: r.boardAt });
+    }
+  }
+  list.sort((a, b) => b.boardAt - a.boardAt);
+  return ok({ list });
+}
+
+// 补签到确认：rode=true → 补记为已签到并 +1；rode=false → 记爽约 −20（谎报由队友 done 后举报缺勤兜底）
+async function confirmRide(event, openid) {
+  const ride = await getRide(event.rideId);
+  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
+  if (ride.status !== "done") return fail("NOT_DONE", "拼车结束（已完成）后才能确认");
+  const pc = ride.pendingConfirm;
+  if (!pc || pc.settled) return fail("NO_CONFIRM", "当前无需确认");
+  const now = Date.now();
+  if (now >= pc.dueAt) return fail("CONFIRM_CLOSED", "确认已截止");
+  if (!(pc.openids || []).includes(openid)) return fail("NOT_IN", "你不在待确认名单");
+  if ((pc.resolved || []).includes(openid)) return fail("DUP", "你已确认过");
+  const rode = !!event.rode;
+  const resolved = (pc.resolved || []).concat(openid);
+  const allResolved = (pc.openids || []).every((o) => resolved.includes(o));
+  const members = (ride.members || []).map((m) => (m.openid === openid && rode ? { ...m, checkedInAt: now } : m));
+  const patch = {
+    members,
+    memberCount: members.length,
+    pendingConfirm: { ...pc, resolved, settled: allResolved },
+    updatedAt: now,
+  };
+  if (!rode) patch.noShowConfirmed = (ride.noShowConfirmed || []).concat(openid);
+  await db.collection("rides").doc(ride._id).update({ data: patch });
+  if (rode) await applyCreditDelta(openid, CREDIT_RIDE_OK);
+  else await applyCreditDelta(openid, CREDIT_LEAVE_NO_SHOW);
+  return ok({ rode, creditDelta: rode ? CREDIT_RIDE_OK : CREDIT_LEAVE_NO_SHOW });
+}
+
 module.exports = {
   create,
   join,
@@ -261,4 +305,6 @@ module.exports = {
   checkin,
   respondPoll,
   updateNote,
+  confirmPending,
+  confirmRide,
 };

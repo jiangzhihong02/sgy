@@ -15,6 +15,7 @@ const {
   T_POLL_ASK,
   T_POLL_DUE,
   T_SETTLE,
+  CONFIRM_WINDOW_MS,
   CREDIT_RIDE_OK,
   CREDIT_LEAVE_NO_SHOW,
   ACTIVE_STATUS,
@@ -97,6 +98,7 @@ async function advanceStatus(raw) {
     const now = Date.now();
     let patch = null;
     let settle = false;
+    let deferredPenalty = null; // 到期仍未确认的补签到对象（结算挂起后由本分支落罚）
     if (cur.status === "recruiting") {
       if (now >= cur.boardAt - T_JOIN_CLOSE) {
         patch = { status: cur.memberCount >= 2 ? "locked" : "failed", poll: null, updatedAt: now };
@@ -112,9 +114,27 @@ async function advanceStatus(raw) {
     } else if (cur.status === "locked" && now >= cur.boardAt) {
       patch = { status: "ongoing", updatedAt: now };
     } else if (cur.status === "ongoing" && !cur.settled && now >= cur.boardAt + T_SETTLE) {
-      const noShows = (cur.members || []).filter((m) => !(m.checkedInAt && m.checkedInAt > 0)).map((m) => m.openid);
-      patch = { status: "done", settled: true, noShowConfirmed: (cur.noShowConfirmed || []).concat(noShows), updatedAt: now };
+      // 结算：已签到 +1；未签到的成员不立即扣分，挂起等"补签到确认"（48h 窗口），到期仍不确认才默认爽约 −20。
+      const pending = (cur.members || []).filter((m) => !(m.checkedInAt && m.checkedInAt > 0)).map((m) => m.openid);
+      const confirmDue = cur.boardAt + T_SETTLE + CONFIRM_WINDOW_MS;
+      const expiredNow = now >= confirmDue; // 极少：结算本来就晚于确认窗口（如补跑）
+      patch = {
+        status: "done",
+        settled: true,
+        noShowConfirmed: (cur.noShowConfirmed || []).concat(expiredNow ? pending : []),
+        pendingConfirm: { dueAt: confirmDue, openids: pending, resolved: [], settled: false },
+        updatedAt: now,
+      };
       settle = true;
+    } else if (cur.status === "done" && cur.pendingConfirm && !cur.pendingConfirm.settled && now >= (cur.pendingConfirm.dueAt || 0)) {
+      // 补签到确认窗口到期：仍未确认的成员记爽约 −20（已确认的跳过）
+      const pc = cur.pendingConfirm;
+      const un = (pc.openids || []).filter((o) => !(pc.resolved || []).includes(o));
+      const npc = { ...pc, settled: true };
+      patch = un.length
+        ? { pendingConfirm: npc, noShowConfirmed: (cur.noShowConfirmed || []).concat(un), updatedAt: now }
+        : { pendingConfirm: npc, updatedAt: now };
+      deferredPenalty = un.length ? un : null;
     } else {
       break; // 当前没有到期的推进
     }
@@ -127,8 +147,12 @@ async function advanceStatus(raw) {
       if (settle) {
         for (const m of cur.members || []) {
           if (m.checkedInAt && m.checkedInAt > 0) await applyCreditDelta(m.openid, CREDIT_RIDE_OK);
-          else await applyCreditDelta(m.openid, CREDIT_LEAVE_NO_SHOW);
+          else if (now >= cur.boardAt + T_SETTLE + CONFIRM_WINDOW_MS) await applyCreditDelta(m.openid, CREDIT_LEAVE_NO_SHOW);
+          // 未到确认截止：挂起，待 confirmRide 或 deferred 分支处理
         }
+      }
+      if (deferredPenalty) {
+        for (const o of deferredPenalty) await applyCreditDelta(o, CREDIT_LEAVE_NO_SHOW);
       }
     } else {
       // 竞争失败（别人先翻了）：重拉最新状态继续判

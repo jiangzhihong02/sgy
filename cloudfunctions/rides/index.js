@@ -25,6 +25,8 @@ const HANDLERS = {
   checkin: lifecycle.checkin,
   respondPoll: lifecycle.respondPoll,
   updateNote: lifecycle.updateNote,
+  confirmPending: lifecycle.confirmPending, // 补签到确认：待确认列表
+  confirmRide: lifecycle.confirmRide, // 补签到确认：上车了(+1) / 没上(−20)
   // 查询
   list: queries.list,
   my: queries.my,

@@ -37,6 +37,17 @@ function routeLabel(route) {
   return `${route.from} → ${route.to}`;
 }
 
+/** 起终点简写（聊天室切换条用）：别名(教大) → 去「（…）」→ 去"香港侧/的士站"后缀 → 超 6 字截断。 */
+const SHORT_ALIAS = { "香港教育大学": "教大" };
+function shortPoint(name) {
+  if (!name) return "";
+  const s = String(name).trim();
+  if (SHORT_ALIAS[s]) return SHORT_ALIAS[s];
+  let t = s.replace(/（[^）]*）/g, "").replace(/香港侧$/, "").replace(/的士站$/, "");
+  if (t.length > 6) t = t.slice(0, 6) + "…";
+  return t || s;
+}
+
 /** 距离上车时间的展示文案：minutes 为相对当前时刻的分钟数（负数=已过） */
 function departureText(minutes) {
   if (minutes == null) return "";
@@ -104,6 +115,7 @@ module.exports = {
   RIDE_STATUS,
   statusView,
   routeLabel,
+  shortPoint,
   departureText,
   fmtTime,
   fmtDate,
