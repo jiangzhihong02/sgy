@@ -7,6 +7,14 @@ const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const autopoll = require("../../utils/autopoll.js");
 const rulesText = require("../../utils/rulesText.js"); // 图片上限与服务端 MSG_IMG_MAX 同一来源（getRules 下发，快照兜底）
 
+// 聊天室公约（首次进入某局弹一次，半屏面板分条展示）
+const CHAT_RULES = [
+  { t: "友善发言", d: "不人身攻击，就事论事。" },
+  { t: "建议当面 AA", d: "拼完车当场结清（我的 → 如何AA）；收款码等见了面再发，尽早结清。" },
+  { t: "警惕出发前先收钱", d: "不要向没见过的拼友预付 定金 / 手续费 / 代付。谨防受骗。" },
+  { t: "聊天室时效", d: "局完成后移到列表末尾，48 小时后关闭（历史消息仍可在「行程」查看）。" },
+];
+
 Page({
   data: {
     rooms: [],
@@ -21,6 +29,8 @@ Page({
     chatInput: "",
     sending: false,
     loading: true,
+    rules: CHAT_RULES,
+    showRules: false, // 聊天室公约（半屏面板）
   },
 
   onLoad() {
@@ -134,16 +144,12 @@ Page({
       seen = !!wx.getStorageSync("chatRulesSeen_" + rideId);
     } catch (e) { /* storage 不可用照常弹 */ }
     if (seen) return;
-    wx.showModal({
-      title: "聊天室公约",
-      content:
-        "友善发言，不人身攻击。\n局完成后聊天室移到列表末尾，48 小时后关闭（历史消息仍可在「行程」查看）。\n建议拼完车当场 AA（我的 → 如何AA）；收款码有时效性，尽早结清。",
-      confirmText: "知道了",
-      showCancel: false,
-      success: () => {
-        try { wx.setStorageSync("chatRulesSeen_" + rideId, 1); } catch (e) { /* 忽略 */ }
-      },
-    });
+    try { wx.setStorageSync("chatRulesSeen_" + rideId, 1); } catch (e) { /* 忽略 */ }
+    this.setData({ showRules: true });
+  },
+
+  closeRules() {
+    this.setData({ showRules: false });
   },
 
   applyMessages(msgs) {

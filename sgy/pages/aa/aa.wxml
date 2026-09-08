@@ -24,7 +24,7 @@
   <!-- 方法二 · 聊天室发收款码 -->
   <view class="card no-margin method">
     <view class="method-title">方法二 · 聊天室发收款码</view>
-    <view class="method-desc">把微信/支付宝个人收款码发到局聊天室，队友长按保存后扫码付。</view>
+    <view class="method-desc">拼完车后，把微信/支付宝个人收款码发到局聊天室让队友付——只发给已同车的人，别提前收陌生人的钱。</view>
     <view class="method-warn">⚠️ 收款码有时效性，可能逃单——尽量当面结清。</view>
   </view>
 

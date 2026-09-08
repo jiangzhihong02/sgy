@@ -214,3 +214,64 @@
   border-radius: 999rpx;
 }
 
+/* ---- 聊天室公约（半屏面板，分条排版） ---- */
+.cr-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 90;
+}
+.cr-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 28rpx 32rpx calc(28rpx + env(safe-area-inset-bottom));
+  z-index: 91;
+}
+.cr-head {
+  margin-bottom: 20rpx;
+}
+.cr-title {
+  font-size: 34rpx;
+  font-weight: 700;
+}
+.cr-close {
+  color: #8a9099;
+  font-size: 32rpx;
+  padding: 8rpx 8rpx 8rpx 24rpx;
+}
+.cr-item {
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.cr-item:last-child {
+  border-bottom: none;
+}
+.cr-item-t {
+  font-size: 27rpx;
+  font-weight: 600;
+  color: #07a55a;
+  margin-bottom: 4rpx;
+}
+.cr-item-d {
+  font-size: 25rpx;
+  color: #4e545c;
+  line-height: 1.6;
+}
+.cr-agree {
+  margin-top: 24rpx;
+  background: #07c160;
+  color: #fff;
+  text-align: center;
+  border-radius: 999rpx;
+  padding: 20rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
