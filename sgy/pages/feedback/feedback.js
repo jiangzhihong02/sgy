@@ -62,8 +62,4 @@ Page({
       wx.showModal({ title: "提交失败", content: res.msg || "请重试", showCancel: false });
     }
   },
-
-  goBack() {
-    wx.navigateBack();
-  },
 });
