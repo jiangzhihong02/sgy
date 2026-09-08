@@ -44,9 +44,10 @@ async function list(event, openid) {
 async function my(event, openid) {
   const res = await db.collection("rides").where({ memberOpenids: openid }).limit(100).get();
   const adv = await advanceMany(res.data || []); // 读时自愈：过期未关/未结算的先就地推进
-  const rows = adv.map(view).sort((a, b) => b.boardAt - a.boardAt);
-  const ongoing = rows.filter((r) => ["recruiting", "locked", "ongoing"].includes(r.status));
-  const history = rows.filter((r) => ["done", "cancelled", "failed"].includes(r.status));
+  const rows = adv.map(view);
+  // 分桶排序：未完成按出发时间升序（先出发在前——聊天室切换栏/行程"未完成"都是"下一个要上的局"在前，新加入的局每次重建自动入位）；历史降序（最近完成在前）
+  const ongoing = rows.filter((r) => ["recruiting", "locked", "ongoing"].includes(r.status)).sort((a, b) => a.boardAt - b.boardAt);
+  const history = rows.filter((r) => ["done", "cancelled", "failed"].includes(r.status)).sort((a, b) => b.boardAt - a.boardAt);
   return ok({ ongoing, history });
 }
 
