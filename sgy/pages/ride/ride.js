@@ -5,6 +5,8 @@ const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const { dayLabel, frameCls } = require("../../utils/domain.js");
 const autopoll = require("../../utils/autopoll.js");
 const rulesText = require("../../utils/rulesText.js");
+const { decideJoinGate } = require("../../utils/rideGate.js"); // 加入前确认门控（纯判定）
+const { confirm } = require("../../utils/confirm.js"); // 确认-再动作弹窗样板
 
 Page({
   data: {
@@ -133,34 +135,31 @@ Page({
 
   async onJoin() {
     const ride = this.data.ride;
-    // 加急局成员侧承诺：出发在即已过免费退出线，加入后中途退出计爽约（覆盖近临出发提示，不叠弹窗）
-    if (ride && ride.urgent && !this._urgentJoinConfirmed) {
-      wx.showModal({
+    const gate = decideJoinGate(ride, Date.now()); // 该弹哪种确认（urgent/near/null），纯判定集中一处
+    // 加急局成员侧承诺：出发在即已过免费退出线，加入后中途退出计爽约（优先级高于近临提醒，不叠弹窗）
+    if (gate === "urgent" && !this._urgentJoinConfirmed) {
+      confirm({
         title: "加入加急局？",
         content: "加急局出发在即（30 分钟内）：加入后中途退出计爽约、扣信用分。确认加入？",
         confirmText: "确认加入",
         cancelText: "再想想",
-        success: (r) => {
-          if (r.confirm) {
-            this._urgentJoinConfirmed = true;
-            this.onJoin();
-          }
+        onOk: () => {
+          this._urgentJoinConfirmed = true;
+          this.onJoin();
         },
       });
       return;
     }
     // 非加急、距发车 < 1 小时：提示可能来不及 / 凑不齐（凑不齐自动取消、不计爽约）
-    if (ride && !ride.urgent && !this._nearJoinConfirmed && ride.boardAt - Date.now() < 60 * 60000) {
-      wx.showModal({
+    if (gate === "near" && !this._nearJoinConfirmed) {
+      confirm({
         title: "确认加入？",
         content: "距发车不到 1 小时：可能来不及集合，也可能凑不齐人。凑不齐会自动取消，不计爽约。确定加入吗？",
         confirmText: "确定加入",
         cancelText: "再想想",
-        success: (r) => {
-          if (r.confirm) {
-            this._nearJoinConfirmed = true;
-            this.onJoin();
-          }
+        onOk: () => {
+          this._nearJoinConfirmed = true;
+          this.onJoin();
         },
       });
       return;
@@ -200,32 +199,30 @@ Page({
   onLeave() {
     const r = this.data.ride;
     const late = r && Date.now() >= r.boardAt - 30 * 60 * 1000;
-    wx.showModal({
+    confirm({
       title: "退出这一局？",
       content: late ? "距上车不足 30 分钟，退出会计爽约（信用 −20）。确定退出？" : "退出后如想再参加需重新加入。",
-      success: (res) => res.confirm && this.run("leave", {}, "已退出"),
+      onOk: () => this.run("leave", {}, "已退出"),
     });
   },
 
   onCancel() {
-    wx.showModal({
+    confirm({
       title: "解散这一局？",
       content: "解散后所有成员都会收到局已取消。",
-      success: (res) => {
-        if (res.confirm) {
-          this.run("cancel", {}).then((ok) => ok && setTimeout(() => wx.navigateBack(), 600));
-        }
+      onOk: () => {
+        this.run("cancel", {}).then((ok) => ok && setTimeout(() => wx.navigateBack(), 600));
       },
     });
   },
 
   onCheckin() {
     // 严谨交互：二次确认（措辞软化"诚信出行"→"互相信任"）
-    wx.showModal({
+    confirm({
       title: "确认到达？",
       content: "请如实签到——拼车靠的是互相信任，别让队友空等。",
       confirmText: "我到了",
-      success: (r) => r.confirm && this.run("checkin", {}, "已签到，大家集合吧"),
+      onOk: () => this.run("checkin", {}, "已签到，大家集合吧"),
     });
   },
 
@@ -234,10 +231,10 @@ Page({
   },
 
   onPollNo() {
-    wx.showModal({
+    confirm({
       title: "不认可当前人数？",
       content: "你会免费退出这一局（不影响信用），让其余成员继续组。",
-      success: (res) => res.confirm && this.run("respondPoll", { accept: false }, "已退出"),
+      onOk: () => this.run("respondPoll", { accept: false }, "已退出"),
     });
   },
 

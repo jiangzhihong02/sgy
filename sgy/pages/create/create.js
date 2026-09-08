@@ -2,7 +2,7 @@
 // 返校 = 深圳→教大：选上车点（固定终点教大）或自定义上车点；离校 = 教大→口岸/就近：选或自定义下车点。
 const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
-const { DIRECTIONS, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
+const { DIRECTIONS, fmtDate, fmtTime, dayLabel, dateTimeToMs } = require("../../utils/domain.js");
 const rulesText = require("../../utils/rulesText.js");
 
 // 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
@@ -160,9 +160,9 @@ Page({
     this.setData({ customDest: e.detail.value });
   },
 
-  // 所选时间距现在还有多少毫秒（加急/普通共用；date=YYYY-MM-DD，time=HH:mm）
+  // 所选时间距现在还有多少毫秒（加急/普通共用；用 domain.dateTimeToMs，与服务端同口径）
   _leadOf(date, time) {
-    return new Date(`${date}T${time}:00+08:00`).getTime() - Date.now();
+    return dateTimeToMs(date, time) - Date.now();
   },
 
   // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）；加急局下限 15 分钟、窗口 30 分钟

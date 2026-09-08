@@ -74,6 +74,12 @@ function fmtDate(ms) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
+/** date("YYYY-MM-DD") + time("HH:mm") → 毫秒（与 rides/rules.js dateTimeToMs 同口径，避免两端两套实现；失败返回 0）。 */
+function dateTimeToMs(date, time) {
+  const t = Date.parse(`${date}T${time}:00+08:00`);
+  return Number.isNaN(t) ? 0 : t;
+}
+
 /** 毫秒 -> 距现在还有多久的文案（未来为正） */
 function departFromNow(ms) {
   if (!ms) return "";
@@ -119,6 +125,7 @@ module.exports = {
   departureText,
   fmtTime,
   fmtDate,
+  dateTimeToMs,
   departFromNow,
   dayLabel,
   frameCls,
