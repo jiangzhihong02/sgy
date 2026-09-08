@@ -67,7 +67,7 @@ button::after {
   color: #3d8bfd;
   text-decoration: none;
   display: inline-block;
-  padding-bottom: 6rpx;
+  padding-bottom: 2rpx;
   border-bottom: 2rpx solid currentColor;
   line-height: 1.2;
 }
