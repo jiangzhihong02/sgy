@@ -16,7 +16,10 @@
     <view class="room-bar card no-margin" bindtap="openRide">
       <view class="row-between">
         <view class="flex-1">
-          <view class="room-title">{{curTitle}}</view>
+          <view class="room-title">
+            <view class="room-time">{{curDay}}</view>
+            <view class="room-route">{{curRoute}}</view>
+          </view>
           <view class="small muted">点此查看队伍详情</view>
         </view>
         <text class="tag {{curStatusCls}}">{{curSub}}</text>

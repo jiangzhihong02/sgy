@@ -13,6 +13,8 @@ Page({
     hasRooms: false,
     curRideId: "",
     curTitle: "",
+    curDay: "", // 顶部两行式：第一行时间
+    curRoute: "", // 第二行起终点
     curSub: "",
     curStatusCls: "tag-gray",
     messages: [],
@@ -68,7 +70,9 @@ Page({
       return {
         rideId: r._id,
         label: `${c.dayText} ${c.routeLabel}`, // 顶部队伍条：完整
-        short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写（日期时间 + 起终点简写）
+        short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写
+        day: c.dayText,
+        route: c.routeLabel,
         statusLabel: c.statusLabel,
       };
     });
@@ -89,7 +93,13 @@ Page({
   async loadRoom(rideId) {
     const room = this._rooms.find((x) => x.rideId === rideId);
     if (!room) return;
-    this.setData({ curRideId: rideId, curTitle: room.label, curSub: room.statusLabel });
+    this.setData({
+      curRideId: rideId,
+      curTitle: room.label,
+      curDay: room.day,
+      curRoute: room.route,
+      curSub: room.statusLabel,
+    });
     const res = await api.call("rides", { action: "detail", rideId });
     if (res.ok) {
       const d = res.data.ride;
