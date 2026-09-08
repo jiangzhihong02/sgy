@@ -166,6 +166,7 @@ Page({
       return;
     }
     this.setData({ time: t, timeH: v[0], timeM: v[1] });
+    this._maybeSuggestLeadTime();
   },
   onPickDate(e) {
     const date = e.detail.value;
@@ -183,6 +184,27 @@ Page({
     patch.timeH = hi;
     patch.timeM = mi;
     this.setData(patch);
+    this._maybeSuggestLeadTime();
+  },
+
+  // 选完集合时间后提示一次"提前约50分钟"（可"不再显示"永久关闭，storage 记录，不做重置入口）
+  _maybeSuggestLeadTime() {
+    let off = false;
+    try {
+      off = !!wx.getStorageSync("createLeadTipOff");
+    } catch (e) { /* storage 不可用照常提示 */ }
+    if (off) return;
+    wx.showModal({
+      title: "留出集合与 AA 时间",
+      content: "建议集合时间比上课时间提前约 50 分钟——留出到校、与队友当面 AA 的时间，避免赶上课。",
+      confirmText: "知道了",
+      cancelText: "不再显示",
+      success: (r) => {
+        if (!r.confirm) {
+          try { wx.setStorageSync("createLeadTipOff", 1); } catch (e) { /* 忽略 */ }
+        }
+      },
+    });
   },
   onCapacityTap(e) {
     this.setData({ capacity: Number(e.currentTarget.dataset.cap) });
@@ -253,8 +275,12 @@ Page({
 
     if (res.ok) {
       wx.showToast({ title: "已发起，等拼友来", icon: "success" });
+      // 平台 AA 提醒（严谨交互）：先成功提示，再补一条"线下AA / 逃单不负责"
+      setTimeout(() => {
+        wx.showToast({ title: "平台建议线下 AA，安全妥当；逃单、不给钱平台不负责", icon: "none" });
+      }, 800);
       // redirectTo：用详情页替换本填表页 → 详情页左上角返回 = 直接回找局
-      setTimeout(() => wx.redirectTo({ url: `/pages/ride/ride?id=${res.data.rideId}` }), 600);
+      setTimeout(() => wx.redirectTo({ url: `/pages/ride/ride?id=${res.data.rideId}` }), 1800);
     } else if (res.err === "ACTIVE_RIDE" && res.data && res.data.conflict) {
       const c = res.data.conflict;
       this.setData({

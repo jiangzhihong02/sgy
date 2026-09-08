@@ -23,6 +23,7 @@ Page({
     menu: [
       { id: "credit", label: "信用分与规则", icon: "⭐" },
       { id: "privacy", label: "性别与隐私", icon: "🔒" },
+      { id: "aa", label: "如何 AA（线下付款）", icon: "💰" },
       { id: "feedback", label: "反馈与建议", icon: "✉️" },
       { id: "about", label: "关于本工具", icon: "ℹ️" },
     ],
@@ -126,6 +127,10 @@ Page({
     const id = e.currentTarget.dataset.id;
     if (id === "feedback") {
       wx.navigateTo({ url: "/pages/feedback/feedback" });
+      return;
+    }
+    if (id === "aa") {
+      wx.navigateTo({ url: "/pages/aa/aa" });
       return;
     }
     // 信用分规则 / 隐私与实名：半屏可视化面板（rules-panel 组件，内容单一来源 rides/rules.js）

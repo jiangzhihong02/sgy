@@ -46,7 +46,7 @@ const FALLBACK = {
       lines: ["不展示微信号。", "站内联系走局内聊天室。"],
     },
   ],
-  limits: { msgMax: 200, imgMax: 500000, noteMax: 50 },
+  limits: { msgMax: 200, imgMax: 500000, noteMax: 50, chatKeepMs: 175500000 }, // chatKeepMs = 45min + 48h（结算后48h聊天室保留）
 };
 
 let cache = null; // null = 尚未成功拉到云端（用快照兜底）
@@ -74,5 +74,6 @@ const creditTable = () => payload().creditTable || [];
 const creditFooter = () => payload().creditFooter || "";
 const privacySections = () => payload().privacySections || [];
 const imgMax = () => ((payload().limits || {}).imgMax) || 500000;
+const chatKeepMs = () => ((payload().limits || {}).chatKeepMs) || 175500000;
 
-module.exports = { payload, load, timeline, preview, creditTable, creditFooter, privacySections, imgMax };
+module.exports = { payload, load, timeline, preview, creditTable, creditFooter, privacySections, imgMax, chatKeepMs };

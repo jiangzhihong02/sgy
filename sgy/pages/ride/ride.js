@@ -186,7 +186,13 @@ Page({
   },
 
   onCheckin() {
-    this.run("checkin", {}, "已签到，大家集合吧");
+    // 严谨交互：二次确认（措辞软化"诚信出行"→"互相信任"）
+    wx.showModal({
+      title: "确认到达？",
+      content: "请如实签到——拼车靠的是互相信任，别让队友空等。",
+      confirmText: "我到了",
+      success: (r) => r.confirm && this.run("checkin", {}, "已签到，大家集合吧"),
+    });
   },
 
   onPollYes() {
@@ -245,5 +251,9 @@ Page({
   },
   goBack() {
     wx.navigateBack();
+  },
+
+  openAA() {
+    wx.navigateTo({ url: "/pages/aa/aa" });
   },
 });

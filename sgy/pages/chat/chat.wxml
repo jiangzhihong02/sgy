@@ -30,7 +30,7 @@
       <view
         wx:for="{{rooms}}"
         wx:key="rideId"
-        class="room-chip {{curRideId === item.rideId ? 'active' : ''}}"
+        class="room-chip {{curRideId === item.rideId ? 'active' : ''}} {{item.done ? 'done' : ''}}"
         data-id="{{item.rideId}}"
         bindtap="onSwitchRoom"
       >{{item.short}}</view>

@@ -69,11 +69,17 @@ Page({
     // 已有队伍时静默刷新，避免每次进 Tab 闪"加载中"；首次/空态才显示全屏 loading
     if (!this.data.hasRooms) this.setData({ loading: true });
     const res = await api.call("my");
+    const keepMs = rulesText.chatKeepMs(); // 聊天室保留窗（结算后 48h，服务端同宽禁发）
     const ongoing = res.ok ? res.data.ongoing || [] : [];
-    const rooms = ongoing.map((r) => {
+    // 局完成 48h 内仍在列表（排末尾、标灰）；过期移出——历史消息仍在「行程」可看
+    const doneKeep = res.ok
+      ? (res.data.history || []).filter((r) => r.status === "done" && Date.now() <= r.boardAt + keepMs)
+      : [];
+    const rooms = [...ongoing, ...doneKeep].map((r) => {
       const c = cardOf(r);
       return {
         rideId: r._id,
+        done: c.statusLabel === "已完成",
         short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写
         day: c.dayText,
         route: c.routeLabel,
@@ -116,6 +122,28 @@ Page({
       this.applyMessages(d.messages || []);
       this.setData({ curStatusCls: cardOf(d).statusCls });
     }
+    this._showRoomRulesOnce(rideId);
+  },
+
+  // 每局首次进入该聊天室时弹一次公约（按局记忆；storage 持久，重复进入/切走回来不再弹）
+  _showRoomRulesOnce(rideId) {
+    if (this._rulesShownRide === rideId) return;
+    this._rulesShownRide = rideId;
+    let seen = false;
+    try {
+      seen = !!wx.getStorageSync("chatRulesSeen_" + rideId);
+    } catch (e) { /* storage 不可用照常弹 */ }
+    if (seen) return;
+    wx.showModal({
+      title: "聊天室公约",
+      content:
+        "友善发言，不人身攻击。\n局完成后聊天室移到列表末尾，48 小时后关闭（历史消息仍可在「行程」查看）。\n建议拼完车当场 AA（我的 → 如何AA）；收款码有时效性，尽早结清。",
+      confirmText: "知道了",
+      showCancel: false,
+      success: () => {
+        try { wx.setStorageSync("chatRulesSeen_" + rideId, 1); } catch (e) { /* 忽略 */ }
+      },
+    });
   },
 
   applyMessages(msgs) {

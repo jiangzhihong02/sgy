@@ -1,0 +1,45 @@
+<!--pages/aa/aa.wxml —— 如何 AA（线下付款）-->
+<view class="page">
+  <!-- 免责声明 -->
+  <view class="card no-margin intro">
+    <view class="strong intro-title">平台只撮合，不收款</view>
+    <view class="small muted">车费由成员自行分摊，线下当面或站内转账结清。平台不负责收款与追讨；出现逃单、不给钱的情况，请自行协商。</view>
+  </view>
+
+  <!-- 方法一（推荐）· 面对面 -->
+  <view class="card no-margin method">
+    <view class="row method-head">
+      <text class="tag tag-green">推荐</text>
+      <text class="method-title">方法一 · 面对面 AA</text>
+    </view>
+    <view class="method-desc">上车前/下车后当场分摊，钱款两清，最稳妥。</view>
+    <view class="method-step">微信收款：我 → 服务/支付 → 收付款 → 二维码收款，出示个人收款码。</view>
+    <view class="method-step">支付宝收款：首页 → 收付款 → 收款码。</view>
+    <view class="method-step">备选 · 微信「面对面红包」：我 → 服务/支付 → 收付款 → 面对面红包（双方在附近，一人发一人扫）。</view>
+    <!-- 图位：面对面红包教程（待作者配图） -->
+    <image wx:if="{{imgFace}}" class="img-slot" src="{{imgFace}}" mode="widthFix" />
+    <view wx:else class="img-placeholder">【图位】微信「面对面红包」教程 · 待配图</view>
+  </view>
+
+  <!-- 方法二 · 聊天室发收款码 -->
+  <view class="card no-margin method">
+    <view class="method-title">方法二 · 聊天室发收款码</view>
+    <view class="method-desc">把微信/支付宝个人收款码发到局聊天室，队友长按保存后扫码付。</view>
+    <view class="method-warn">⚠️ 收款码有时效性，可能逃单——尽量当面结清。</view>
+    <!-- 图位：聊天室发收款码示例（待作者配图） -->
+    <image wx:if="{{imgCode}}" class="img-slot" src="{{imgCode}}" mode="widthFix" />
+    <view wx:else class="img-placeholder">【图位】聊天室发收款码示例 · 待配图</view>
+  </view>
+
+  <!-- 方法三 · 微信群收群收款 -->
+  <view class="card no-margin method">
+    <view class="method-title">方法三 · 微信群「群收款」</view>
+    <view class="method-desc">建一个微信群，用「我 → 服务/支付 → 收付款 → 群收款」发起，让每人填写应摊金额。</view>
+    <view class="method-warn">⚠️ 有人退群/失联可能收不上来。</view>
+    <!-- 图位：群收款示例（待作者配图） -->
+    <image wx:if="{{imgGroup}}" class="img-slot" src="{{imgGroup}}" mode="widthFix" />
+    <view wx:else class="img-placeholder">【图位】微信群「群收款」示例 · 待配图</view>
+  </view>
+
+  <view class="foot-note">AA 金额建议当场谈定；港币/人民币按各自本币收付即可。</view>
+</view>

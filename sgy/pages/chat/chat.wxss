@@ -69,6 +69,11 @@
   border-color: #07c160;
   font-weight: 600;
 }
+.room-chip.done {
+  color: #a5abb3;
+  background: #f7f8fa;
+  border-color: #f0f1f3;
+}
 .switch-hint {
   margin: 4rpx 24rpx 8rpx;
   flex-shrink: 0;
