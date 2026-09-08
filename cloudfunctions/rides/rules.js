@@ -11,7 +11,7 @@ const T_SAME_DIR = 120 * MIN; // 同方向（返校×返校 / 离校×离校）�
 const T_POLL_ASK = 60 * MIN; // T−60 人数轮询发起
 const T_POLL_DUE = 45 * MIN; // T−45 轮询截止（未回复默认接受）
 const T_CHECKIN_GRACE = 10 * MIN; // T+10 停止"我到了"签到
-const T_SETTLE = 60 * MIN; // 上车 1 小时后自动结算（此前曾为 2h，2026-09 定稿）
+const T_SETTLE = 45 * MIN; // 上车后 45 分钟自动结算（深港单程最慢约 45 分钟，行程结束即结算、尽早进入补签确认窗口；此前曾为 2h→1h，2026-09-08 定稿 45min）
 const CONFIRM_WINDOW_MS = 48 * 3600 * 1000; // 结算后"补签到确认"窗口：到点没签到的成员 48h 内可弹窗确认是否上车（见 CONTEXT 签到）
 
 // —— 信用分（数值参数）——
