@@ -26,9 +26,6 @@
     <view class="method-title">方法二 · 聊天室发收款码</view>
     <view class="method-desc">把微信/支付宝个人收款码发到局聊天室，队友长按保存后扫码付。</view>
     <view class="method-warn">⚠️ 收款码有时效性，可能逃单——尽量当面结清。</view>
-    <!-- 图位：聊天室发收款码示例（待作者配图） -->
-    <image wx:if="{{imgCode}}" class="img-slot" src="{{imgCode}}" mode="widthFix" />
-    <view wx:else class="img-placeholder">【图位】聊天室发收款码示例 · 待配图</view>
   </view>
 
   <!-- 方法三 · 微信群收群收款 -->
@@ -36,9 +33,6 @@
     <view class="method-title">方法三 · 微信群「群收款」</view>
     <view class="method-desc">建一个微信群，用「我 → 服务/支付 → 收付款 → 群收款」发起，让每人填写应摊金额。</view>
     <view class="method-warn">⚠️ 有人退群/失联可能收不上来。</view>
-    <!-- 图位：群收款示例（待作者配图） -->
-    <image wx:if="{{imgGroup}}" class="img-slot" src="{{imgGroup}}" mode="widthFix" />
-    <view wx:else class="img-placeholder">【图位】微信群「群收款」示例 · 待配图</view>
   </view>
 
   <view class="foot-note">AA 金额建议当场谈定；港币/人民币按各自本币收付即可。</view>
