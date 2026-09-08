@@ -13,8 +13,6 @@ const FALLBACK = {
     { t: "约定时间", d: "到上车点的士站集合，点「我到了」告诉队友你已到。" },
     { t: "上车后 10 分钟", d: "停止「我到了」签到；之后仍没签到也没退出的，系统会在局结束时按爽约自动扣信用分。" },
   ],
-  preview:
-    "最少 2 人成局，人数上限由你设（2–6）。按出发时间倒推：提前 60 分钟未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 45 分钟）；提前 30 分钟前可自由退出、你可解散；提前 10 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，上车后 10 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。",
   creditTable: [
     { event: "初始", note: "注册即默认", delta: "+100", up: true },
     { event: "爽约", note: "出发前 30 分钟后退出 / 到点没签到，经 48h 补确认仍没上车或逾期不答", delta: "-20", up: false },
@@ -69,7 +67,6 @@ function load() {
 }
 
 const timeline = () => (payload().timeline || []).map((r) => ({ t: r.t, d: r.d }));
-const preview = () => payload().preview || "";
 const creditTable = () => payload().creditTable || [];
 const creditFooter = () => payload().creditFooter || "";
 const privacySections = () => payload().privacySections || [];
@@ -78,4 +75,4 @@ const chatKeepMs = () => ((payload().limits || {}).chatKeepMs) || 175500000;
 const urgentMinLead = () => ((payload().limits || {}).urgentMinLead) || 900000;
 const urgentWindow = () => ((payload().limits || {}).urgentWindow) || 1800000;
 
-module.exports = { payload, load, timeline, preview, creditTable, creditFooter, privacySections, imgMax, chatKeepMs, urgentMinLead, urgentWindow };
+module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, imgMax, chatKeepMs, urgentMinLead, urgentWindow };

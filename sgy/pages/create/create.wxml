@@ -104,8 +104,21 @@
   </view>
 
   <view class="rules-tip small" bindtap="onPreviewRule">
-    <view class="muted">ℹ️ 一局的成立规则（T−60 轮询 · T−30 自由退出 · T−10 关局 ≥2 人成局）</view>
-    <view class="link">点这里查看规则 ›</view>
+    <view class="muted">ℹ️ 一局的成立规则：临近出发会发起人数确认 · 出发前 30 分钟前可自由退出 · 出发前 10 分钟停止加入，≥2 人即成局</view>
+    <view class="link">{{showRulesTip ? '收起规则' : '点这里查看规则'}} ›</view>
+  </view>
+
+  <!-- 成立规则表（就地展开，两列：时点｜说明） -->
+  <view wx:if="{{showRulesTip}}" class="card rules-card">
+    <view class="rules-title">成立规则</view>
+    <view class="rules-row rules-head">
+      <text class="t">时点</text>
+      <text class="d">说明</text>
+    </view>
+    <view wx:for="{{rules}}" wx:key="t" class="rules-row">
+      <text class="t">{{item.t}}</text>
+      <text class="d">{{item.d}}</text>
+    </view>
   </view>
 
   <!-- 发局冲突提示卡：居中 + 上下对比小表 -->

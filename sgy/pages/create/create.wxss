@@ -23,6 +23,41 @@
   text-align: center;
 }
 
+/* 成立规则表（就地展开，与局详情"规则"卡同款两列） */
+.rules-card {
+  margin-top: 0;
+}
+.rules-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 12rpx;
+}
+.rules-row {
+  display: flex;
+  align-items: flex-start;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+  font-size: 26rpx;
+}
+.rules-row:last-child {
+  border-bottom: none;
+}
+.rules-head {
+  font-size: 22rpx;
+  color: #8a9099;
+}
+.rules-row .t {
+  width: 200rpx;
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #07a55a;
+}
+.rules-row .d {
+  flex: 1;
+  color: #4e545c;
+  line-height: 1.5;
+}
+
 /* 发局冲突提示卡 */
 .err-card {
   margin: 24rpx;

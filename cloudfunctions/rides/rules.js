@@ -70,10 +70,6 @@ const RULE_TIMELINE = [
   { t: `上车后 ${MIN_(T_CHECKIN_GRACE)} 分钟`, d: "停止「我到了」签到；之后仍没签到也没退出的，系统会在局结束时按爽约自动扣信用分。" },
 ];
 
-// 发局页「一局怎么算成立」整段
-const PREVIEW_TEXT =
-  `最少 2 人成局，人数上限由你设（2–6）。按出发时间倒推：提前 ${MIN_(T_POLL_ASK)} 分钟未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 ${MIN_(T_POLL_DUE)} 分钟）；提前 ${MIN_(T_FREE_EXIT)} 分钟前可自由退出、你可解散；提前 ${MIN_(T_JOIN_CLOSE)} 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，上车后 ${MIN_(T_CHECKIN_GRACE)} 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。`;
-
 // —— 信用分表格（可视化面板；数值内插自上，事件行文案静态；结构化表述，规则唯一表述格式）——
 const CREDIT_TABLE = [
   { event: "初始", note: "注册即默认", delta: `+${CREDIT_DEFAULT}`, up: true },
@@ -109,11 +105,10 @@ const PRIVACY_SECTIONS = [
   },
 ];
 
-/** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview 供发局页说明，creditTable/creditFooter/privacySections 供可视化面板，limits 供前端校验）。 */
+/** rides.getRules 返回的完整面板（timeline 供详情/发局规则表，creditTable/creditFooter/privacySections 供可视化面板，limits 供前端校验）。 */
 function rulePayload() {
   return {
     timeline: RULE_TIMELINE,
-    preview: PREVIEW_TEXT,
     creditTable: CREDIT_TABLE,
     creditFooter: CREDIT_FOOTER,
     privacySections: PRIVACY_SECTIONS,

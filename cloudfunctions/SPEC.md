@@ -177,7 +177,7 @@ ongoing
 - `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
 - `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。已完成局保留窗 `boardAt + T_SETTLE + CONFIRM_WINDOW_MS`（48h）内仍可发（补账用），过后返回 `CHAT_CLOSED`。
 - `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
-- `getRules`：下发面向用户规则面板 `{ timeline, preview, creditTable, creditFooter, privacySections, limits:{imgMax, chatKeepMs, …} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT 已删除，避免双轨漂移）；`chatKeepMs` 供客户端判断聊天室保留窗；客户端 `sgy/utils/rulesText.js` 快照兜底。
+- `getRules`：下发面向用户规则面板 `{ timeline, creditTable, creditFooter, privacySections, limits:{imgMax, chatKeepMs, urgentMinLead, urgentWindow, …} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT/PREVIEW_TEXT 均已删除，避免双轨漂移）；`timeline` 供详情与发局页的规则表；`chatKeepMs` 供客户端判断聊天室保留窗；客户端 `sgy/utils/rulesText.js` 快照兜底。
 - `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
 - `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
 - `feedback`（仅注册用户）/ `feedbackList`（管理员）/ `feedbackHandled`（管理员）：提交/查看/标记已处理用户反馈（集合 `feedbacks`，见 §1）。

@@ -72,6 +72,8 @@ Page({
     capacityRange: [2, 3, 4, 5, 6], // 上限 2–6（有六人座车；默认 4）
     urgent: false, // 加急局：30 分钟内出发（T−5 关局；凑不齐自动作废不扣发起人分）
     note: "",
+    showRulesTip: false, // 成立规则表就地展开
+    rules: rulesText.timeline(), // 成立规则表（云端单一来源，快照兜底；onLoad 再刷新）
     submitting: false,
     err: null, // { head, sub, rows:[{label,text}] }
   },
@@ -90,6 +92,7 @@ Page({
       timeH: hi,
       timeM: mi,
     });
+    rulesText.load().then(() => this.setData({ rules: rulesText.timeline() })); // 成立规则表以云端为准
     this.applyDirection("in", true);
     this.refreshRoutes();
   },
@@ -249,9 +252,8 @@ Page({
   },
 
   onPreviewRule() {
-    rulesText.load().then(() => {
-      wx.showModal({ title: "一局怎么算成立", content: rulesText.preview(), showCancel: false });
-    });
+    // 查看规则 = 就地展开两列表格（时点｜说明），已中文；不用整段弹窗
+    this.setData({ showRulesTip: !this.data.showRulesTip });
   },
 
   async onSubmit() {
