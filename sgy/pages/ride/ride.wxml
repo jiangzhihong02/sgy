@@ -147,23 +147,6 @@
 
   <view wx:else class="empty">加载中…</view>
 
-  <!-- 成员资料浮层 -->
-  <view wx:if="{{showMember}}" class="mp-mask" bindtap="closeMember"></view>
-  <view wx:if="{{showMember && panel}}" class="mp-panel">
-    <view class="row mp-head">
-      <view class="avatar mp-avatar {{panel.frame}}">{{panel.avatarChar}}</view>
-      <view class="flex-1 mp-info">
-        <view class="strong">{{panel.name}}</view>
-        <view class="small muted">性别：{{panel.genderText}} · 信用分：{{panel.credit}}</view>
-        <text wx:if="{{panel.schoolVerified}}" class="tag tag-green mp-school">✓ 校内已登记</text>
-      </view>
-      <text class="mp-close" bindtap="closeMember">✕</text>
-    </view>
-    <button wx:if="{{!panel.isMe && isDone}}" class="btn btn-ghost btn-block mp-btn" bindtap="onPanelReinvite">下周同一时刻 · 再约 TA</button>
-    <button wx:if="{{!panel.isMe}}" class="btn {{panel.blocked ? 'btn-danger-ghost' : 'btn-ghost'}} btn-block mp-btn" bindtap="toggleBlock">
-      {{panel.blocked ? '取消标记（可同行）' : '标记：不与其乘车'}}
-    </button>
-    <button wx:if="{{!panel.isMe}}" class="btn btn-danger-ghost btn-block mp-btn" bindtap="onPanelReport">举报 TA（选原因）</button>
-    <view wx:if="{{!panel.isMe && !isDone}}" class="small muted mp-tip">标记后，加入含 TA 的队伍时会收到提醒</view>
-  </view>
+  <!-- 成员资料浮层（共用组件：ride 详情与聊天同款） -->
+  <member-sheet id="memberSheet" />
 </view>

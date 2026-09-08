@@ -1,0 +1,45 @@
+/* components/member-sheet/member-sheet.wxss（样式随局详情一致） */
+.ms-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+}
+.ms-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 32rpx 48rpx;
+  z-index: 100;
+}
+.ms-head {
+  margin-bottom: 20rpx;
+}
+.ms-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  font-size: 34rpx;
+}
+.ms-info {
+  margin-left: 20rpx;
+}
+.ms-school {
+  margin-top: 6rpx;
+}
+.ms-close {
+  font-size: 32rpx;
+  color: #8a9099;
+  padding: 8rpx 0 8rpx 24rpx;
+}
+.ms-btn {
+  margin: 8rpx 0 12rpx;
+}
+.ms-tip {
+  text-align: center;
+}

@@ -1,0 +1,22 @@
+<!-- components/member-sheet/member-sheet.wxml —— 成员资料浮层 -->
+<view wx:if="{{show}}">
+  <view class="ms-mask" bindtap="close"></view>
+  <view class="ms-panel">
+    <view class="row ms-head">
+      <view class="avatar ms-avatar {{member.frame}}">{{member.avatarChar}}</view>
+      <view class="flex-1 ms-info">
+        <view class="strong">{{member.name}}</view>
+        <view class="small muted">性别：{{member.genderText}}{{member.credit != null ? ' · 信用分：' + member.credit : ''}}</view>
+        <text wx:if="{{member.schoolVerified}}" class="tag tag-green ms-school">✓ 校内已登记</text>
+      </view>
+      <text class="ms-close" bindtap="close">✕</text>
+    </view>
+
+    <button wx:if="{{!member.isMe && done}}" class="btn btn-ghost btn-block ms-btn" bindtap="onReinvite">下周同一时刻 · 再约 TA</button>
+    <button wx:if="{{!member.isMe}}" class="btn {{member.blocked ? 'btn-danger-ghost' : 'btn-ghost'}} btn-block ms-btn" bindtap="toggleBlock">
+      {{member.blocked ? '取消标记（可同行）' : '标记：不与其乘车'}}
+    </button>
+    <button wx:if="{{!member.isMe}}" class="btn btn-danger-ghost btn-block ms-btn" bindtap="onReport">举报 TA（选原因）</button>
+    <view wx:if="{{!member.isMe && !member.blocked}}" class="small muted ms-tip">标记后，加入含 TA 的队伍时会收到提醒</view>
+  </view>
+</view>

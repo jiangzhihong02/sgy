@@ -1,3 +1,6 @@
 {
-  "navigationBarTitleText": "聊天室"
+  "navigationBarTitleText": "聊天室",
+  "usingComponents": {
+    "member-sheet": "/components/member-sheet/member-sheet"
+  }
 }

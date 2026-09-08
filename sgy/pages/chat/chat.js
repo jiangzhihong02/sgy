@@ -20,8 +20,6 @@ Page({
     chatInput: "",
     sending: false,
     loading: true,
-    memShow: false, // 消息头像点开的成员资料浮层
-    mem: null,
   },
 
   onLoad() {
@@ -135,75 +133,20 @@ Page({
     wx.navigateTo({ url: `/pages/ride/ride?id=${this.data.curRideId}` });
   },
 
-  // ---- 消息头像 → 成员资料浮层（与局详情同套后端 memberInfo/block/complaint；聊天室局为进行中，只能报性别不实） ----
-  async openSender(e) {
+  // ---- 消息头像 → 成员资料浮层（共用 member-sheet 组件；聊天局为进行中，只能报性别不实） ----
+  openSender(e) {
     const { openid, name } = e.currentTarget.dataset;
     if (!openid) return;
-    wx.showLoading({ title: "", mask: true });
-    const res = await api.call("rides", { action: "memberInfo", rideId: this.data.curRideId, targetOpenid: openid });
-    wx.hideLoading();
-    const m = res.ok ? res.data.member : null;
-    if (!m) {
-      wx.showToast({ title: (res && res.msg) || "无法查看该成员", icon: "none" });
-      return;
+    const sheet = this.selectComponent("#memberSheetChat");
+    if (sheet) {
+      sheet.open({
+        rideId: this.data.curRideId,
+        targetOpenid: openid,
+        name,
+        meOpenid: this._openid,
+        isDone: false, // 聊天室局为未出发/进行中：仅性别不实举报，无再约
+      });
     }
-    this.setData({
-      mem: {
-        openid: m.openid,
-        name: m.name || name || "?",
-        genderText: m.gender === "female" ? "女" : m.gender === "male" ? "男" : "未填",
-        credit: m.credit,
-        blocked: !!m.blocked,
-        schoolVerified: !!m.schoolVerified, // F2 起有值：仅「✓ 校内已登记」
-        isMe: openid === this._openid,
-        avatarChar: avatarChar(m.name || name),
-        frame: frameCls(m.gender || ""),
-      },
-      memShow: true,
-    });
-  },
-  closeMem() {
-    this.setData({ memShow: false });
-  },
-  async toggleMemBlock() {
-    const mem = this.data.mem;
-    if (!mem || mem.isMe) return;
-    const res = await api.call("rides", {
-      action: "block",
-      rideId: this.data.curRideId,
-      targetOpenid: mem.openid,
-      block: !mem.blocked,
-    });
-    if (res.ok) {
-      this.setData({ "mem.blocked": res.data.blocked });
-      wx.showToast({ title: res.data.blocked ? "已标记：不与其乘车" : "已取消标记", icon: "none" });
-    } else {
-      wx.showToast({ title: res.msg || "操作失败", icon: "none" });
-    }
-  },
-  memReport() {
-    const mem = this.data.mem;
-    if (!mem || mem.isMe) return;
-    wx.showActionSheet({
-      itemList: ["性别填写与真实不符"],
-      success: async () => {
-        const res = await api.call("rides", {
-          action: "complaint",
-          rideId: this.data.curRideId,
-          targetOpenid: mem.openid,
-          kind: "gender_fake",
-        });
-        if (!res.ok) {
-          wx.showModal({ title: "举报未提交", content: res.msg || "请重试", showCancel: false });
-          return;
-        }
-        wx.showToast({
-          title: res.data && res.data.auto ? "已有多人联名，自动坐实并扣分" : "已提交，待复核",
-          icon: "none",
-        });
-        this.closeMem();
-      },
-    });
   },
 
   goFeed() {

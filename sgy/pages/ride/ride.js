@@ -21,8 +21,6 @@ Page({
     showRules: false,
     rules: rulesText.timeline(), // 规则面板：云端单一来源，本地快照兜底（onLoad 再刷新）
     isDone: false, // 已结束/已取消：操作按钮应灰置不可交互
-    showMember: false, // 成员资料浮层
-    panel: null, // { openid,name,gender,credit,blocked,frame }
     editingNote: false,
     noteDraft: "",
     blockedRideText: "", // 本局里被我标过「不与其乘车」的人（标记者横幅）
@@ -227,86 +225,20 @@ Page({
     this.setData({ showRules: !this.data.showRules });
   },
 
-  // ---- 成员资料 / 标记 / 举报 / 再约（统一在成员浮层里操作） ----
+  // ---- 成员资料 / 标记 / 举报 / 再约（统一走共用 member-sheet 组件） ----
   async openMember(e) {
     const { openid, name } = e.currentTarget.dataset;
-    const isMe = openid === this._openid;
-    wx.showLoading({ title: "", mask: true });
-    const res = await api.call("rides", { action: "memberInfo", rideId: this._rideId, targetOpenid: openid });
-    wx.hideLoading();
-    if (!res.ok && !isMe) {
-      wx.showToast({ title: res.msg || "无法查看", icon: "none" });
-      return;
-    }
-    const m = res.ok
-      ? res.data.member
-      : { openid, name: name || "我", gender: "", credit: null, blocked: false };
-    this.setData({
-      panel: {
-        ...m,
-        name: m.name || name,
-        genderText: m.gender === "female" ? "女" : m.gender === "male" ? "男" : "未填",
-        avatarChar: avatarChar(m.name || name),
-        frame: frameCls(m.gender),
-        isMe,
-      },
-      showMember: true,
-    });
-  },
-  closeMember() {
-    this.setData({ showMember: false });
-  },
-  async toggleBlock() {
-    const p = this.data.panel;
-    if (!p || p.isMe) return;
-    const res = await api.call("rides", { action: "block", rideId: this._rideId, targetOpenid: p.openid, block: !p.blocked });
-    if (res.ok) {
-      this.setData({ "panel.blocked": res.data.blocked });
-      wx.showToast({ title: res.data.blocked ? "已标记：不与其乘车" : "已取消标记", icon: "none" });
-    } else {
-      wx.showToast({ title: res.msg || "操作失败", icon: "none" });
+    const sheet = this.selectComponent("#memberSheet");
+    if (sheet) {
+      sheet.open({
+        rideId: this._rideId,
+        targetOpenid: openid,
+        name,
+        meOpenid: this._openid,
+        isDone: this.data.isDone,
+      });
     }
   },
-  // 举报：进行中局只有"性别不实"；已结束局才有 迟到/缺勤
-  onPanelReport() {
-    const p = this.data.panel;
-    if (!p || p.isMe) return;
-    const items = this.data.isDone ? ["性别填写与真实不符", "迟到", "缺勤 / 没来"] : ["性别填写与真实不符"];
-    const kinds = this.data.isDone ? ["gender_fake", "lateness", "absence"] : ["gender_fake"];
-    wx.showActionSheet({
-      itemList: items,
-      success: (r) => this.submitReport(p.openid, kinds[r.tapIndex]),
-    });
-  },
-  async submitReport(targetOpenid, kind) {
-    const res = await api.call("rides", { action: "complaint", rideId: this._rideId, targetOpenid, kind });
-    if (!res.ok) {
-      wx.showModal({ title: "举报未提交", content: res.msg || "请重试", showCancel: false });
-      return;
-    }
-    wx.showToast({
-      title: res.data && res.data.auto ? "已有多人联名，自动坐实并扣分" : "已提交，待复核",
-      icon: "none",
-    });
-    this.closeMember();
-  },
-  // 已完成局：下周同一时刻再约老队友（后端自动复用/新建进行中局并发邀请）
-  async onPanelReinvite() {
-    const p = this.data.panel;
-    if (!p || p.isMe) return;
-    wx.showLoading({ title: "", mask: true });
-    const res = await api.call("rides", { action: "reinvite", rideId: this._rideId, targetOpenid: p.openid });
-    wx.hideLoading();
-    if (!res.ok) {
-      wx.showModal({ title: "再约失败", content: res.msg || "请重试", showCancel: false });
-      return;
-    }
-    const createdText = res.data.created ? "已建下周同一时刻的新局；" : "用你现有进行中的局；";
-    const invText = res.data.inviteSent ? "邀请已发出" : "邀请发送：" + (res.data.msg || "失败");
-    wx.showToast({ title: createdText + invText, icon: "none" });
-    this.closeMember();
-  },
-
   goBack() {
     wx.navigateBack();
   },

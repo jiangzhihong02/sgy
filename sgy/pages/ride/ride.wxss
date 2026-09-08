@@ -290,50 +290,6 @@
 .mini-link.danger {
   color: #fa5151;
 }
-.mp-mask {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 90;
-}
-.mp-panel {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #fff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 32rpx 32rpx 48rpx;
-  z-index: 100;
-}
-.mp-head {
-  margin-bottom: 20rpx;
-}
-.mp-avatar {
-  width: 88rpx;
-  height: 88rpx;
-  font-size: 34rpx;
-}
-.mp-info {
-  margin-left: 20rpx;
-}
-.mp-school {
-  margin-top: 6rpx;
-}
-.mp-close {
-  font-size: 32rpx;
-  color: #8a9099;
-  padding: 8rpx 0 8rpx 24rpx;
-}
-.mp-btn {
-  margin: 8rpx 0 12rpx;
-}
-.mp-tip {
-  text-align: center;
-}
 
 /* 已结束提示条 */
 .done-tip {
