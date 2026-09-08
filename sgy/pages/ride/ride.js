@@ -114,6 +114,8 @@ Page({
   },
 
   goChatTab() {
+    // 让聊天室 Tab 选中这一局：switchTab 不带参数，用 globalData 传目标局 id（chat.onShow 消费后清除）
+    getApp().globalData.pendingChatRide = this._rideId;
     wx.switchTab({ url: "/pages/chat/chat" });
   },
 

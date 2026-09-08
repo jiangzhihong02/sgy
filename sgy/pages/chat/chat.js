@@ -38,6 +38,12 @@ Page({
     });
   },
   onShow() {
+    // 从局详情「去聊天室」跳来时：globalData 里带目标局 id，本次优先选中它（用后即清，避免下次误选）
+    const g = getApp().globalData;
+    if (g && g.pendingChatRide) {
+      this._pendingRideId = g.pendingChatRide;
+      g.pendingChatRide = "";
+    }
     this.ensureMe().finally(() => this.refreshRooms());
     this._chatPoll.start();
   },
@@ -77,6 +83,11 @@ Page({
     this._rooms = rooms;
 
     let cur = this.data.curRideId;
+    if (this._pendingRideId) {
+      // 详情页「去聊天室」带过来的目标局：存在才选中，否则回退；用后清除
+      if (rooms.some((x) => x.rideId === this._pendingRideId)) cur = this._pendingRideId;
+      this._pendingRideId = "";
+    }
     if (!rooms.some((x) => x.rideId === cur)) cur = rooms.length ? rooms[0].rideId : "";
 
     this.setData({
