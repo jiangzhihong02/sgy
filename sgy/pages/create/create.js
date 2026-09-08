@@ -69,6 +69,7 @@ Page({
     timeM: 0,
     capacity: 4,
     capacityRange: [2, 3, 4, 5, 6], // 上限 2–6（有六人座车；默认 4）
+    urgent: false, // 加急局：30 分钟内出发（T−5 关局；凑不齐自动作废不扣发起人分）
     note: "",
     submitting: false,
     err: null, // { head, sub, rows:[{label,text}] }
@@ -155,14 +156,20 @@ Page({
     this.setData({ customDest: e.detail.value });
   },
 
-  // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）
+  // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）；加急局下限 15 分钟、窗口 30 分钟
   onPickTimeM(e) {
     const v = e.detail.value || [];
     const hh = HOURS[v[0]] || "00";
     const mm = MINS[v[1]] || "00";
     const t = `${hh}:${mm}`;
-    if (this.data.date === this._today && this.data.timeStart && t < this.data.timeStart) {
-      wx.showToast({ title: "出发时间不能早于当前 31 分钟", icon: "none" });
+    const lead = new Date(`${this.data.date}T${t}:00+08:00`).getTime() - Date.now();
+    const minLead = this.data.urgent ? rulesText.urgentMinLead() : 31 * 60000;
+    if (lead < minLead) {
+      wx.showToast({ title: this.data.urgent ? "加急局最早提前 15 分钟发起" : "出发时间不能早于当前 31 分钟", icon: "none" });
+      return;
+    }
+    if (this.data.urgent && lead > rulesText.urgentWindow()) {
+      wx.showToast({ title: "加急仅限 30 分钟内出发", icon: "none" });
       return;
     }
     this.setData({ time: t, timeH: v[0], timeM: v[1] });
@@ -171,9 +178,9 @@ Page({
   onPickDate(e) {
     const date = e.detail.value;
     const patch = { date };
-    // 选今天 → 时间下限=当前+31 分钟；选未来 → 不限（避免出现早于现在的选项）
+    // 选今天 → 时间下限=当前+31 分钟（加急 15 分钟）；选未来 → 不限（避免出现早于现在的选项）
     if (date === this._today) {
-      const start = fmtTime(Date.now() + 31 * 60000);
+      const start = fmtTime(Date.now() + (this.data.urgent ? rulesText.urgentMinLead() : 31 * 60000));
       patch.timeStart = start;
       if (this.data.time && this.data.time < start) patch.time = start;
     } else {
@@ -211,6 +218,26 @@ Page({
   onCapacityTap(e) {
     this.setData({ capacity: Number(e.currentTarget.dataset.cap) });
   },
+
+  // 加急局开关：仅当所选时间在 15–30 分钟内可用；勾选时提醒"可能没人响应"
+  onToggleUrgent() {
+    if (this.data.urgent) {
+      this.setData({ urgent: false });
+      return;
+    }
+    const lead = new Date(`${this.data.date}T${this.data.time}:00+08:00`).getTime() - Date.now();
+    if (lead > rulesText.urgentWindow() || lead < rulesText.urgentMinLead()) {
+      wx.showToast({ title: "先把上车时间调到 15–30 分钟内，再勾加急", icon: "none" });
+      return;
+    }
+    this.setData({ urgent: true });
+    wx.showModal({
+      title: "加急局提醒",
+      content: "加急局 30 分钟内出发，可能没人响应——请做好心理准备。",
+      confirmText: "知道",
+      showCancel: false,
+    });
+  },
   onNoteInput(e) {
     this.setData({ note: e.detail.value });
   },
@@ -223,6 +250,22 @@ Page({
 
   async onSubmit() {
     if (this.data.submitting) return;
+    // 加急局：发起前二次确认（发起后不能取消；凑不齐 2 人自动作废，不计爽约不扣分）
+    if (this.data.urgent && !this._urgentConfirmed) {
+      wx.showModal({
+        title: "加急局 · 发起前确认",
+        content: "加急局 30 分钟内出发，发起后不能取消。若凑不齐 2 人会自动作废（不计爽约、不扣信用分）。确认发起？",
+        confirmText: "确认发起",
+        cancelText: "再想想",
+        success: (r) => {
+          if (r.confirm) {
+            this._urgentConfirmed = true;
+            this.onSubmit();
+          }
+        },
+      });
+      return;
+    }
     this.setData({ err: null });
     const { directionId, date, time, capacity, note } = this.data;
 
@@ -270,13 +313,14 @@ Page({
       time,
       capacity,
       note,
+      urgent: this.data.urgent,
       ...routePayload,
     });
     wx.hideLoading();
     this.setData({ submitting: false });
 
     if (res.ok) {
-      wx.showToast({ title: "已发起，等拼友来", icon: "success" });
+      wx.showToast({ title: this.data.urgent ? "加急局已发起，转发拉人吧" : "已发起，等拼友来", icon: "success" });
       // 平台 AA 提醒（严谨交互）：先成功提示，再补一条"线下AA / 逃单不负责"
       setTimeout(() => {
         wx.showToast({ title: "平台建议线下 AA，安全妥当；逃单、不给钱平台不负责", icon: "none" });

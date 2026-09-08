@@ -72,7 +72,10 @@
   <view wx:if="{{rides.length}}" class="ride-list">
     <view wx:for="{{rides}}" wx:key="id" class="card ride-card" data-id="{{item.id}}" bindtap="openRide">
       <view class="row-between">
-        <text class="strong">{{item.routeLabel}}</text>
+        <view class="row">
+          <text class="strong">{{item.routeLabel}}</text>
+          <text wx:if="{{item.urgent}}" class="tag tag-urgent">加急</text>
+        </view>
         <text class="tag {{item.statusCls}}">{{item.statusLabel}}</text>
       </view>
 

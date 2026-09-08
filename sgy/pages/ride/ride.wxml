@@ -12,7 +12,10 @@
     <!-- 顶部信息 -->
     <view class="card ride-hero">
       <view class="row-between">
-        <text class="tag {{ride.statusCls}}">{{ride.statusLabel}}</text>
+        <view class="row">
+          <text class="tag {{ride.statusCls}}">{{ride.statusLabel}}</text>
+          <text wx:if="{{ride.urgent}}" class="tag tag-urgent">加急</text>
+        </view>
         <text class="small muted" bindtap="onRule">规则 ›</text>
       </view>
       <view class="route">{{ride.routeLabel}}</view>

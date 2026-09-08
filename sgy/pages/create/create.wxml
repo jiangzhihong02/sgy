@@ -91,6 +91,13 @@
       </view>
     </view>
     <view class="field">
+      <view class="field-label">加急</view>
+      <view class="flex-1">
+        <view class="chip cap-chip {{urgent ? 'active' : ''}}" bindtap="onToggleUrgent">🔥 加急局（30 分钟内出发）</view>
+        <view class="small muted">{{urgent ? '关局放宽到出发前 5 分钟；凑不齐自动作废，不扣信用分' : '最早提前 15 分钟；凑不齐自动作废，不扣发起人分'}}</view>
+      </view>
+    </view>
+    <view class="field">
       <view class="field-label">备注</view>
       <input class="flex-1" placeholder="如：的士站最右边集合、大概几点到" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
     </view>

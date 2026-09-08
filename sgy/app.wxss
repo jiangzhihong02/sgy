@@ -158,6 +158,12 @@ button::after {
   background: #ffeceb;
   color: #fa5151;
 }
+.tag-urgent {
+  background: #ffeceb;
+  color: #fa5151;
+  font-weight: 600;
+  margin-left: 10rpx;
+}
 
 /* ---- 头像 ---- */
 .avatar {

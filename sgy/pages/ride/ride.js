@@ -88,6 +88,7 @@ Page({
         memberCount: d.memberCount,
         capacity: d.capacity,
         status: d.status,
+        urgent: !!d.urgent, // 加急局红标
         members: d.members.map((m) => ({
           openid: m.openid,
           name: m.name,
