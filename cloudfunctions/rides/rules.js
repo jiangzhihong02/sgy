@@ -73,13 +73,51 @@ const CREDIT_TEXT =
 const PRIVACY_TEXT =
   `性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别与真实不符，会被同车人举报：坐实后清空性别并扣信用分；若同一局有 3 名以上成员同报、或你被多次坐实，则系统把性别改为判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。`;
 
-/** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview/creditText/privacyText 供弹层，limits 供前端校验）。 */
+// —— 信用分表格（可视化面板；数值内插自上，事件行文案静态；与 CREDIT_TEXT 同语义的结构化版）——
+const CREDIT_TABLE = [
+  { event: "初始", note: "注册即默认", delta: `+${CREDIT_DEFAULT}`, up: true },
+  { event: "爽约", note: `出发前 ${MIN_(T_FREE_EXIT)} 分钟后退出 / 到点没签到，经 48h 补确认仍没上车或逾期不答`, delta: `${CREDIT_LEAVE_NO_SHOW}`, up: false },
+  { event: "迟到", note: "举报坐实（同局 ≥2 人联名自动，否则管理员复核）", delta: `${KIND_DELTA.lateness}`, up: false },
+  { event: "缺勤·没来", note: "举报坐实；谎报「上车了」也靠队友报此条兜底", delta: `${KIND_DELTA.absence}`, up: false },
+  { event: "性别不实", note: "举报坐实，顺带清空性别；多人/多次坐实会反推锁定", delta: `${KIND_DELTA.gender_fake}`, up: false },
+  { event: "成功同行", note: "到点签到且局完成，结算自动", delta: `+${CREDIT_RIDE_OK}`, up: true },
+];
+const CREDIT_FOOTER = `封顶 ${CREDIT_CAP}。低于 ${CREDIT_LOW} 暂停发起新局 ${DAYS_(BAN_DAYS_MS)} 天（仍可加入）。`;
+
+// —— 隐私与实名（分节排版；与 PRIVACY_TEXT 同语义的结构化版）——
+const PRIVACY_SECTIONS = [
+  {
+    title: "性别（自报，不验证）",
+    lines: [
+      "仅用于组队/聊天里以头像框颜色辨认（蓝男·粉女）。",
+      `自报不实会被同车人举报：坐实后清空性别并扣 ${KIND_DELTA.gender_fake}。`,
+      "同一局 ≥3 名成员同报、或多次坐实 → 系统把性别改为判定的另一性别并锁定，仅管理员可纠正。",
+    ],
+  },
+  {
+    title: "校内身份（自报不核验）",
+    lines: [
+      "登记是威慑与线下好辨认，系统不验证真伪。",
+      "同车人只看到「✓ 校内已登记」绿标，学号与姓名明文不对外。",
+      "学号与姓名仅本人与管理员可见；填错可自行修改，撤销登记需联系管理员。",
+    ],
+  },
+  {
+    title: "联系方式",
+    lines: ["不展示微信号。", "站内联系走局内聊天室。"],
+  },
+];
+
+/** rides.getRules 返回的完整面板（timeline 供详情/发局渲染，preview/creditText/privacyText 供弹层，creditTable/privacySections 供可视化面板，limits 供前端校验）。 */
 function rulePayload() {
   return {
     timeline: RULE_TIMELINE,
     preview: PREVIEW_TEXT,
     creditText: CREDIT_TEXT,
     privacyText: PRIVACY_TEXT,
+    creditTable: CREDIT_TABLE,
+    creditFooter: CREDIT_FOOTER,
+    privacySections: PRIVACY_SECTIONS,
     limits: { msgMax: MSG_MAX, imgMax: MSG_IMG_MAX, noteMax: NOTE_MAX },
   };
 }
@@ -110,4 +148,7 @@ module.exports = {
   dateTimeToMs,
   canCheckin,
   rulePayload,
+  CREDIT_TABLE,
+  CREDIT_FOOTER,
+  PRIVACY_SECTIONS,
 };
