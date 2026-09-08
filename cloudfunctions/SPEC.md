@@ -32,6 +32,7 @@
 
 **blocks（不与其乘车标记）**：`{ byOpenid, targetOpenid, createdAt }`（by+target 幂等）。
 **invites（组队邀请）**：`{ rideId, fromOpenid, fromName, toOpenid, status: 'pending'|'accepted'|'declined', createdAt }`。
+**feedbacks（用户反馈）**：`{ openid, nickName, kind: 'suggestion'|'bug'|'other', text(≤500), contact(选填≤60), status: 'pending'|'handled', createdAt }`（仅注册用户提交）。
 
 ### users（用户档案，惰性创建）
 | 字段 | 说明 |
@@ -41,6 +42,7 @@
 | `gender` | string `''` \| `'female'` \| `'male'`（**自报**，不可信来源） |
 | `genderLocked` | string `''`(未锁) \| `'male'`\|`'female'`（性别不实分级纠错 L2 反推真值后锁定的值；锁定后不可自改，仅管理员 `adminSetGender`） |
 | `genderFakeCount` | number，性别不实坐实累计次数（L2 触发②：≥2） |
+| `schoolId` | object \| null，自报校内身份 `{ school(一期固定教大), studentId(小写 s+7 位), name, major(选填), declaredAt }`；明文仅本人(me)/管理员可见，他人只见 `memberInfo.schoolVerified` 绿标 |
 | `phoneVerified` | bool |
 | `credit` | number，初始 100，封顶 120 |
 | `createdAt` / `updatedAt` | number ms |
@@ -63,7 +65,7 @@
 | `from` / `to` | string，冗余快照（路由改名不影响历史局） |
 | `date` | string `YYYY-MM-DD` |
 | `boardAt` | number ms = T |
-| `capacity` | number 默认 4 |
+| `capacity` | number 默认 4，发起人可设 2–6（create 服务端钳制 2–6） |
 | `status` | `recruiting` \| `locked` \| `ongoing` \| `done` \| `cancelled` \| `failed` |
 | `womenOnly` | bool（**废弃**：UI 已移除"仅限女生"，仅历史数据保留，不再参与任何校验） |
 | `note` | string，发起人备注/暗号（≤50 字） |
@@ -160,13 +162,14 @@ ongoing
 - `checkin`：入 `{ rideId }`。规则见 §3.6。
 - `respondPoll`：入 `{ rideId, accept }`。见 §5。
 - `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
-- `memberInfo` / `block`：成员资料（含信用/是否已标记）与"不与其乘车"标记。
+- `memberInfo` / `block`：成员资料（含信用/是否已标记/`schoolVerified` 仅绿标）与"不与其乘车"标记。
 - `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
 - `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。
 - `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
 - `getRules`：下发面向用户规则面板 `{ timeline, preview, creditText, privacyText, limits:{imgMax,…} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；客户端 `sgy/utils/rulesText.js` 快照兜底。
 - `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
 - `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
+- `feedback`（仅注册用户）/ `feedbackList`（管理员）/ `feedbackHandled`（管理员）：提交/查看/标记已处理用户反馈（集合 `feedbacks`，见 §1）。
 - `__sweep`：由 rideSweep 定时触发调用的结算/状态推进（rides 文件夹内 `sweep.js`，数值以 §2 为准）。
 
 ### 用户档案动作（并入 `rides` 云函数；原独立 `user` 云函数已删除，客户端统一 `call({ name:'rides' })`）
@@ -178,6 +181,9 @@ ongoing
 - `resolveReport`：入 `{ reportId, action: 'uphold'|'dismiss' }`（需管理员）。按 §4 应用扣分并置状态；`gender_fake` 坐实另需清空目标性别。
 - `banUser`：入 `{ openid, days }`（需管理员，信用清零用）。
 - `adminSetGender`：入 `{ targetOpenid, gender: male|female|'', lock?: bool }`（需管理员）。`gender` 非空且 `lock!==false` → 设值并锁定；否则纠正/解锁（`genderLocked=''`）。用于性别误锁纠正。
+- `identitySave`：入 `{ studentId, name, major? }`（仅注册用户）。校内身份自报；学号须 `^s\d{7}$`（存小写），学校一期固定教大；覆盖更新 `users.schoolId`（ADR-0013）。
+- `adminIdentities`（管理员）：列出已登记校内身份（含学号/姓名明文，复核乱填用）。
+- `adminClearIdentity`：入 `{ targetOpenid }`（管理员）。移除 `users.schoolId`（撤销登记）。
 - **管理员判定**：唯一来源 `cloudfunctions/rides/db.js` 的 `ADMIN_OPENIDS`（内测期作者）。改名单改那一处即可。
 
 ### `routeInit`（一次性初始化，手动调用一次）

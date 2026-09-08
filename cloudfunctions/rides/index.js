@@ -11,6 +11,7 @@ const invites = require("./invites");
 const admin = require("./admin");
 const sweep = require("./sweep");
 const account = require("./account");
+const feedback = require("./feedback");
 
 // action → 处理函数。__sweep 由 rideSweep 云函数每分钟触发调用（见 cloudfunctions/rideSweep）。
 // ⚠ 本表所有处理函数统一签名 (event, openid)：只认 openid 不认 event 的（如 account.me/adminPending）
@@ -50,6 +51,14 @@ const HANDLERS = {
   resolveReport: account.resolveReport,
   banUser: account.banUser,
   adminSetGender: account.adminSetGender,
+  // 校内身份（自报防逃跑威慑；仅绿标对外，明文仅管理员）
+  identitySave: account.identitySave,
+  adminIdentities: account.adminIdentities,
+  adminClearIdentity: account.adminClearIdentity,
+  // 用户反馈与建议（仅注册用户；管理员列表/标记）
+  feedback: feedback.submit,
+  feedbackList: feedback.adminList,
+  feedbackHandled: feedback.markHandled,
   // 管理员联调
   adminSeedDone: admin.adminSeedDone,
   adminReset: admin.adminReset,

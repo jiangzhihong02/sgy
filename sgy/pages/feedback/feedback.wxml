@@ -1,0 +1,27 @@
+<!--pages/feedback/feedback.wxml-->
+<view class="page">
+  <view class="card no-margin">
+    <view class="field">
+      <view class="field-label">类别</view>
+      <view class="chips fb-kinds">
+        <view wx:for="{{kinds}}" wx:key="id" class="chip {{kind === item.id ? 'active' : ''}}"
+          data-id="{{item.id}}" bindtap="onPickKind">{{item.label}}</view>
+      </view>
+    </view>
+    <view class="field col-field">
+      <view class="field-label">内容</view>
+      <textarea class="fb-input" placeholder="想加什么功能、遇到什么问题、或有任何想法，写下来吧（≤500 字）"
+        value="{{text}}" maxlength="500" bindinput="onText" auto-height />
+    </view>
+    <view class="field">
+      <view class="field-label">联系方式</view>
+      <input class="field-value" placeholder="选填：邮箱或备注（便于我们回复）" value="{{contact}}"
+        maxlength="60" bindinput="onContact" />
+    </view>
+  </view>
+
+  <view class="tip small muted">反馈会直达运营者；仅注册用户可提交。联系方式选填、仅用于回复，建议不留微信号。</view>
+
+  <button class="btn btn-primary btn-block" bindtap="onSubmit" disabled="{{submitting}}">提交反馈</button>
+  <view class="cancel" bindtap="goBack">返回</view>
+</view>

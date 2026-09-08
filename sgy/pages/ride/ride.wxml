@@ -155,6 +155,7 @@
       <view class="flex-1 mp-info">
         <view class="strong">{{panel.name}}</view>
         <view class="small muted">性别：{{panel.genderText}} · 信用分：{{panel.credit}}</view>
+        <text wx:if="{{panel.schoolVerified}}" class="tag tag-green mp-school">✓ 校内已登记</text>
       </view>
       <text class="mp-close" bindtap="closeMember">✕</text>
     </view>

@@ -37,7 +37,8 @@ function conflictMsg(conf, boardAt, directionId) {
 }
 
 async function create(event, openid) {
-  const { date, time, capacity = 4, womenOnly = false, note = "" } = event;
+  const { date, time, womenOnly = false, note = "" } = event;
+  const capacity = Number.isFinite(Number(event.capacity)) ? Math.min(6, Math.max(2, Math.round(Number(event.capacity)))) : 4; // 2–6 钳制，默认 4
   let route = null;
 
   if (event.routeId) {

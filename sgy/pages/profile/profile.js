@@ -23,6 +23,7 @@ Page({
     menu: [
       { id: "credit", label: "信用分与规则", icon: "⭐" },
       { id: "privacy", label: "隐私与实名说明", icon: "🔒" },
+      { id: "feedback", label: "反馈与建议", icon: "✉️" },
       { id: "about", label: "关于本工具", icon: "ℹ️" },
     ],
   },
@@ -113,8 +114,20 @@ Page({
     }
   },
 
+  onIdentity() {
+    if (!this.data.user.registered) {
+      this.openRegister();
+      return;
+    }
+    wx.navigateTo({ url: "/pages/identity/identity" });
+  },
+
   onTapMenu(e) {
     const id = e.currentTarget.dataset.id;
+    if (id === "feedback") {
+      wx.navigateTo({ url: "/pages/feedback/feedback" });
+      return;
+    }
     const modals = {
       credit: {
         title: "信用分规则",

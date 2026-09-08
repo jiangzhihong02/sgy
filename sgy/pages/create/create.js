@@ -66,7 +66,7 @@ Page({
     timeH: 0,
     timeM: 0,
     capacity: 4,
-    capacityRange: [2, 3, 4],
+    capacityRange: [2, 3, 4, 5, 6], // 上限 2–6（有六人座车；默认 4）
     note: "",
     submitting: false,
     err: null, // { head, sub, rows:[{label,text}] }

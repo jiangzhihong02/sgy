@@ -43,6 +43,25 @@
     <view class="credit-bar"><view class="credit-bar-fill" style="width: {{credit}}%"></view></view>
   </view>
 
+  <!-- 校内身份（自报登记；同车人只见绿标，明文仅自己/管理员） -->
+  <view class="card identity-card" bindtap="onIdentity">
+    <view class="row-between">
+      <text class="small muted">校内身份</text>
+      <block wx:if="{{user.registered && user.schoolId}}">
+        <view class="row">
+          <text class="tag tag-green">✓ 校内已登记</text>
+          <text class="small primary identity-edit">查看 ›</text>
+        </view>
+      </block>
+      <text wx:elif="{{user.registered}}" class="small primary">去登记 ›</text>
+      <text wx:else class="small muted">注册后可登记</text>
+    </view>
+    <view wx:if="{{user.registered && user.schoolId}}" class="small muted identity-sub">
+      {{user.schoolId.name}} · 学号 {{user.schoolId.studentId}}
+    </view>
+    <view class="small muted identity-note">对同车人只显示「✓ 校内已登记」；防逃跑有据可查，不展示微信号</view>
+  </view>
+
   <!-- 菜单 -->
   <view class="card menu-card">
     <view wx:for="{{menu}}" wx:key="id" class="list-row" data-id="{{item.id}}" bindtap="onTapMenu">

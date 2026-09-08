@@ -1,0 +1,34 @@
+/* pages/identity/identity.wxss */
+.page {
+  padding: 24rpx;
+}
+.card {
+  margin: 0;
+}
+.field {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.field:last-child {
+  border-bottom: none;
+}
+.field-label {
+  width: 170rpx;
+  color: #4e545c;
+  flex-shrink: 0;
+}
+.field-value {
+  flex: 1;
+  color: #1f2329;
+}
+.tip {
+  margin: 20rpx 4rpx 28rpx;
+  line-height: 1.6;
+}
+.cancel {
+  text-align: center;
+  color: #8a9099;
+  margin-top: 28rpx;
+}

@@ -1,0 +1,49 @@
+/* pages/feedback/feedback.wxss */
+.page {
+  padding: 24rpx;
+}
+.card {
+  margin: 0;
+}
+.field {
+  display: flex;
+  align-items: center;
+  padding: 26rpx 0;
+  border-bottom: 1rpx solid #f0f1f3;
+}
+.field:last-child {
+  border-bottom: none;
+}
+.field-label {
+  width: 150rpx;
+  color: #4e545c;
+  flex-shrink: 0;
+}
+.field-value {
+  flex: 1;
+  color: #1f2329;
+}
+.fb-kinds {
+  flex-wrap: wrap;
+}
+.fb-kinds .chip {
+  margin: 6rpx 12rpx 6rpx 0;
+}
+.col-field {
+  align-items: flex-start;
+}
+.fb-input {
+  flex: 1;
+  min-height: 160rpx;
+  line-height: 1.6;
+  font-size: 28rpx;
+}
+.tip {
+  margin: 20rpx 4rpx 28rpx;
+  line-height: 1.6;
+}
+.cancel {
+  text-align: center;
+  color: #8a9099;
+  margin-top: 28rpx;
+}

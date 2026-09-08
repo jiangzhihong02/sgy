@@ -6,7 +6,9 @@
     "pages/profile/profile",
     "pages/create/create",
     "pages/ride/ride",
-    "pages/admin/admin"
+    "pages/admin/admin",
+    "pages/feedback/feedback",
+    "pages/identity/identity"
   ],
   "window": {
     "backgroundColor": "#f6f7f9",

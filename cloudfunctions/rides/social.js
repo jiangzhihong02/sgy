@@ -20,6 +20,7 @@ async function memberInfo(event, openid) {
       gender: target.gender || "",
       credit: u ? u.credit : 100,
       blocked: blk.total > 0,
+      schoolVerified: !!(u && u.schoolId), // 仅"已登记"绿标，不下发明文（见 CONTEXT 校内身份）
     },
   });
 }

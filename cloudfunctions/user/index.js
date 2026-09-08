@@ -1,15 +1,52 @@
-// account.js —— 用户档案 / 信用 / 管理员复核
-// 原独立云函数 cloudfunctions/user 已并入本可部署单元（入口见 index.js），本文件不再自带
-// ensureUser/applyCreditDelta/randNick/KIND_DELTA/ADMIN_OPENIDS 副本，全部复用 db.js/rules.js；
-// 性别不实分级与 social.js 共用 gender.js（见 SPEC §0b）。契约见 SPEC.md §6。
-const { db, _, ok, fail, ensureUser, ensureRegistered, applyCreditDelta, isAdmin } = require("./db");
-const { KIND_DELTA } = require("./rules");
-const { applyGenderFake } = require("./gender");
+// cloudfunctions/user —— 用户档案 + 信用 + 管理员复核
+// 契约见 SPEC.md §6 user。
+// TODO(上线前)：把作者 openid 填进 ADMIN_OPENIDS（在开发者工具里用 getOpenId 云函数或 console 查一次即可）。
+const cloud = require("wx-server-sdk");
+cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
+const db = cloud.database();
+const _ = db.command;
 
-const SCHOOL_FIXED = "香港教育大学"; // 一期仅教大
-const RE_STUDENT_ID = /^s\d{7}$/i; // 学号固定格式：小写 s + 7 位纯数字
-const ID_NAME_MAX = 30;
-const ID_MAJOR_MAX = 40;
+const CREDIT_CAP = 120;
+const ADMIN_OPENIDS = ["oDhfnxajsWOYp-ak-V7Vmnm953q0"]; // 内测期作者本人；填入后才有 代发种子局/复核 权限
+
+const ok = (data) => ({ ok: true, data });
+const fail = (err, msg) => ({ ok: false, err, msg });
+
+const isAdmin = (openid) => ADMIN_OPENIDS.includes(openid);
+
+// 随机默认昵称：保证每个用户至少"默认名不同"（注册时可再改名）
+const randNick = () => `拼友${Math.floor(1000 + Math.random() * 9000)}`;
+
+async function ensureUser(openid) {
+  const res = await db.collection("users").where({ openid }).limit(1).get();
+  if (res.data[0]) return res.data[0];
+  const now = Date.now();
+  const data = {
+    openid,
+    nickName: randNick(),
+    avatarUrl: "",
+    gender: "",
+    genderLocked: "",
+    genderFakeCount: 0,
+    phoneVerified: false,
+    registered: false, // 游客可浏览；注册（填昵称）后才能参与拼车
+    credit: 100,
+    bannedUntil: 0,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const add = await db.collection("users").add({ data });
+  return { _id: add._id, ...data };
+}
+
+async function applyCreditDelta(openid, delta) {
+  const u = await ensureUser(openid);
+  const next = Math.max(0, Math.min(CREDIT_CAP, u.credit + delta));
+  const patch = { credit: next, updatedAt: Date.now() };
+  if (next < 60) patch.bannedUntil = Date.now() + 7 * 24 * 3600 * 1000;
+  await db.collection("users").where({ openid }).update({ data: patch });
+  return next;
+}
 
 const publicUser = (u) => ({
   openid: u.openid,
@@ -18,7 +55,6 @@ const publicUser = (u) => ({
   gender: u.gender,
   genderLocked: u.genderLocked || "", // ""=未锁；male/female=已核实锁定的性别（不可自改）
   genderFakeCount: u.genderFakeCount || 0,
-  schoolId: u.schoolId || null, // 校内身份（仅自己可见明文；他人只见 memberInfo.schoolVerified 绿标）
   phoneVerified: u.phoneVerified,
   registered: !!u.registered,
   credit: u.credit,
@@ -38,8 +74,7 @@ async function login(event, openid) {
   return ok({ user: publicUser(u), isAdmin: isAdmin(openid) });
 }
 
-async function me(event, openid) {
-  // 签名与 index.js 的 handler(event, OPENID) 统一：只认 openid，忽略 event。
+async function me(openid) {
   const u = await ensureUser(openid);
   return ok({ user: publicUser(u), isAdmin: isAdmin(openid) });
 }
@@ -58,7 +93,7 @@ async function register(event, openid) {
 }
 
 // 管理员：待处理上报列表（带对象/举报人/线路/类型中文）
-async function adminPending(event, openid) {
+async function adminPending(openid) {
   if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const res = await db.collection("reports").where({ status: "pending" }).get();
   const KIND_LABEL = { gender_fake: "性别填写与真实不符", absence: "缺勤 / 没来", lateness: "迟到", no_show: "爽约" };
@@ -92,11 +127,25 @@ async function resolveReport(event, openid) {
   if (report.status !== "pending") return fail("RESOLVED", "该上报已处理");
 
   if (action === "uphold") {
-    // 按上报类型定扣分：性别不实/缺勤 −20、迟到 −10（唯一来源 rules.js KIND_DELTA；无记录的老 no_show 兜底 −20）
-    const delta = Object.prototype.hasOwnProperty.call(KIND_DELTA, report.kind) ? KIND_DELTA[report.kind] : -20;
+    // 按上报类型定扣分：性别不实/缺勤 −20、迟到 −10、爽约 −20、其它 0
+    const DELTA = { gender_fake: -20, absence: -20, lateness: -10, no_show: -20 };
+    const delta = Object.prototype.hasOwnProperty.call(DELTA, report.kind) ? DELTA[report.kind] : -20;
     if (report.kind === "gender_fake") {
-      // 管理员单人坐实视同本局 1 名举报人：分级梯子在 gender.js（L1 清空 / L2 累计 ≥2 次反推锁定）
-      await applyGenderFake(report.targetOpenid, 1);
+      // 与 rides 联名自动坐实同一套分级：累计坐实 ≥2 次 → 反推为另一性别并锁定；否则清空可重填。
+      // ⚠ 同套分级逻辑在 cloudfunctions/rides/social.js 的 complaint（联名自动坐实），改动必须两处同步。
+      const t = await ensureUser(report.targetOpenid);
+      const g = t.gender || "";
+      if (!t.genderLocked && g) {
+        const nextCount = (t.genderFakeCount || 0) + 1;
+        const upd = { genderFakeCount: nextCount, updatedAt: Date.now() };
+        if (nextCount >= 2) {
+          upd.gender = g === "male" ? "female" : "male";
+          upd.genderLocked = upd.gender;
+        } else {
+          upd.gender = "";
+        }
+        await db.collection("users").where({ openid: report.targetOpenid }).update({ data: upd });
+      }
     }
     let next = null;
     if (delta !== 0) next = await applyCreditDelta(report.targetOpenid, delta);
@@ -139,57 +188,30 @@ async function adminSetGender(event, openid) {
   return ok({ gender: g, genderLocked: data.genderLocked });
 }
 
-// —— 校内身份（自报，防逃跑威慑；对外只给绿标，明文仅管理员可见）——
-
-// 注册用户自报/修改校内身份。学校一期固定教大；学号格式 s+7 位。
-async function identitySave(event, openid) {
-  const needReg = await ensureRegistered(openid);
-  if (needReg) return needReg;
-  const studentId = String(event.studentId || "").trim().toLowerCase();
-  if (!RE_STUDENT_ID.test(studentId)) return fail("BAD_STUDENT_ID", "学号应为小写 s + 7 位数字（如 s1234567）");
-  const name = String(event.name || "").trim().slice(0, ID_NAME_MAX);
-  if (!name) return fail("BAD_NAME", "请填写真实姓名");
-  const major = String(event.major || "").trim().slice(0, ID_MAJOR_MAX);
-  const schoolId = { school: SCHOOL_FIXED, studentId, name, major, declaredAt: Date.now() };
-  await db.collection("users").where({ openid }).update({ data: { schoolId, updatedAt: Date.now() } });
-  return ok({ declared: true });
-}
-
-// 管理员：查看已登记校内身份（复核乱填/重复用）
-async function adminIdentities(event, openid) {
-  if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
-  const res = await db.collection("users").where({ schoolId: _.exists(true) }).limit(200).get();
-  const list = (res.data || [])
-    .map((u) => ({
-      openid: u.openid,
-      nickName: u.nickName || "?",
-      studentId: (u.schoolId && u.schoolId.studentId) || "",
-      name: (u.schoolId && u.schoolId.name) || "",
-      major: (u.schoolId && u.schoolId.major) || "",
-      declaredAt: (u.schoolId && u.schoolId.declaredAt) || 0,
-    }))
-    .sort((a, b) => b.declaredAt - a.declaredAt);
-  return ok({ list });
-}
-
-// 管理员：撤销登记（乱填/纠正），schoolId 字段移除
-async function adminClearIdentity(event, openid) {
-  if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
-  const targetOpenid = String(event.targetOpenid || "");
-  if (!targetOpenid) return fail("BAD_TARGET", "缺少对象");
-  await db.collection("users").where({ openid: targetOpenid }).update({ data: { schoolId: _.remove(), updatedAt: Date.now() } });
-  return ok({ cleared: true });
-}
-
-module.exports = {
-  login,
-  me,
-  register,
-  adminPending,
-  resolveReport,
-  banUser,
-  adminSetGender,
-  identitySave,
-  adminIdentities,
-  adminClearIdentity,
+exports.main = async (event = {}) => {
+  const { OPENID } = cloud.getWXContext();
+  if (!OPENID) return fail("NO_AUTH", "无法识别用户");
+  try {
+    switch (event.action) {
+      case "login":
+        return await login(event, OPENID);
+      case "me":
+        return await me(OPENID);
+      case "register":
+        return await register(event, OPENID);
+      case "adminPending":
+        return await adminPending(OPENID);
+      case "resolveReport":
+        return await resolveReport(event, OPENID);
+      case "banUser":
+        return await banUser(event, OPENID);
+      case "adminSetGender":
+        return await adminSetGender(event, OPENID);
+      default:
+        return fail("NO_ACTION", "未知 action");
+    }
+  } catch (e) {
+    console.error("[user]", e);
+    return fail("EXCEPTION", "服务开小差了，请重试");
+  }
 };

@@ -97,6 +97,20 @@
   border-radius: 999rpx;
   transition: width 0.3s;
 }
+.identity-card {
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+}
+.identity-sub {
+  margin-top: 8rpx;
+}
+.identity-note {
+  margin-top: 4rpx;
+  font-size: 22rpx;
+}
+.identity-edit {
+  margin-left: 12rpx;
+}
 .menu-card {
   margin-top: 20rpx;
 }

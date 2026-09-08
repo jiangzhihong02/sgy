@@ -38,7 +38,8 @@
     <scroll-view scroll-y class="msg-scroll">
       <view wx:if="{{messages.length}}" class="chat-list">
         <view wx:for="{{messages}}" wx:key="createdAt" class="chat-row {{item.mine ? 'mine' : ''}}">
-          <view class="avatar chat-avatar {{item.frame}}">{{item.whoChar}}</view>
+          <view class="avatar chat-avatar {{item.frame}}" data-openid="{{item.openid}}" data-name="{{item.name}}"
+            bindtap="openSender">{{item.whoChar}}</view>
           <view class="chat-main">
             <view class="chat-meta {{item.mine ? 'right' : ''}}">{{item.name}} · {{item.at}}</view>
             <view class="chat-bubble {{item.type === 'image' ? 'img-bubble' : ''}}">
@@ -63,4 +64,24 @@
       <view class="send-btn" bindtap="onSend">发送</view>
     </view>
   </block>
+
+  <!-- 成员资料浮层（点消息头像打开；进行中局只能举报性别不实） -->
+  <view wx:if="{{memShow}}" class="mp-mask" bindtap="closeMem"></view>
+  <view wx:if="{{memShow && mem}}" class="mp-panel">
+    <view class="row mp-head">
+      <view class="avatar mp-avatar {{mem.frame}}">{{mem.avatarChar}}</view>
+      <view class="flex-1 mp-info">
+        <view class="strong">{{mem.name}}</view>
+        <view class="small muted">性别：{{mem.genderText}} · 信用分：{{mem.credit}}</view>
+        <text wx:if="{{mem.schoolVerified}}" class="tag tag-green">✓ 校内已登记</text>
+      </view>
+      <text class="mp-close" bindtap="closeMem">✕</text>
+    </view>
+    <button wx:if="{{!mem.isMe}}" class="btn {{mem.blocked ? 'btn-danger-ghost' : 'btn-ghost'}} btn-block mp-btn" bindtap="toggleMemBlock">
+      {{mem.blocked ? '取消标记（可同行）' : '标记：不与其乘车'}}
+    </button>
+    <button wx:if="{{!mem.isMe}}" class="btn btn-danger-ghost btn-block mp-btn" bindtap="memReport">举报（性别填写与真实不符）</button>
+    <view wx:if="{{!mem.isMe && !mem.blocked}}" class="small muted mp-tip">标记后，加入含 TA 的队伍时会收到提醒</view>
+    <button class="btn btn-ghost btn-block mp-btn" bindtap="memGoRide">去这局详情 ›</button>
+  </view>
 </view>

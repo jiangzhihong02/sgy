@@ -320,6 +320,9 @@
 .mp-info {
   margin-left: 20rpx;
 }
+.mp-school {
+  margin-top: 6rpx;
+}
 .mp-close {
   font-size: 32rpx;
   color: #8a9099;

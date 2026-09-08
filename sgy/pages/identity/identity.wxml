@@ -1,0 +1,30 @@
+<!--pages/identity/identity.wxml-->
+<view class="page">
+  <view class="card no-margin">
+    <view class="field">
+      <view class="field-label">学校</view>
+      <view class="field-value">{{school}}</view>
+    </view>
+    <view class="field">
+      <view class="field-label">学号</view>
+      <input class="field-value" placeholder="如 s1234567（小写 s + 7 位）" value="{{studentId}}"
+        maxlength="8" bindinput="onStudentId" />
+    </view>
+    <view class="field">
+      <view class="field-label">真实姓名</view>
+      <input class="field-value" placeholder="用于同车辨认" value="{{name}}" maxlength="30" bindinput="onName" />
+    </view>
+    <view class="field">
+      <view class="field-label">专业/班级</view>
+      <input class="field-value" placeholder="选填" value="{{major}}" maxlength="40" bindinput="onMajor" />
+    </view>
+  </view>
+
+  <view wx:if="{{declared}}" class="tip small muted">已登记。再次保存=修改；要撤销登记请联系管理员（登记仅威慑，未做人工核验）。</view>
+  <view wx:else class="tip small muted">登记后同车人只会看到「✓ 校内已登记」绿标；学号与姓名仅你自己和管理员可见。</view>
+
+  <button class="btn btn-primary btn-block" bindtap="onSubmit" disabled="{{submitting}}">
+    {{declared ? '保存修改' : '登记校内身份'}}
+  </button>
+  <view class="cancel" bindtap="goBack">返回</view>
+</view>

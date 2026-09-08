@@ -1,10 +1,15 @@
-// pages/admin/admin.js —— 管理员后台（代发种子局 / 举报复核）
+// pages/admin/admin.js —— 管理员后台（代发种子局 / 举报复核 / 反馈建议）
 const api = require("../../utils/api.js");
 const { ROUTES, routeLabel, fmtDate, fmtTime } = require("../../utils/domain.js");
 
 Page({
   data: {
+    tab: "reports", // reports | feedback | identity
     reports: [],
+    fb: [],
+    fbLoaded: false,
+    identities: [],
+    idLoaded: false,
     routeOptions: ROUTES.map((r) => ({ routeId: r.id, label: routeLabel(r) })),
     routeIndex: 0,
     date: "",
@@ -12,7 +17,7 @@ Page({
     dateStart: fmtDate(Date.now()),
     timeStart: "",
     capacity: 4,
-    capacityRange: [2, 3, 4],
+    capacityRange: [2, 3, 4, 5, 6], // 上限 2–6
     seeding: false,
   },
 
@@ -32,9 +37,61 @@ Page({
     this.loadPending();
   },
 
+  onSwitchTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    this.setData({ tab });
+    if (tab === "feedback" && !this.data.fbLoaded) this.loadFeedback();
+    if (tab === "identity" && !this.data.idLoaded) this.loadIdentities();
+  },
+
   async loadPending() {
     const res = await api.call("rides", { action: "adminPending" });
     if (res.ok) this.setData({ reports: res.data.reports || [] });
+  },
+
+  async loadFeedback() {
+    const res = await api.call("rides", { action: "feedbackList" });
+    if (res.ok) {
+      const list = (res.data.list || []).map((f) => ({
+        ...f,
+        createdText: `${fmtDate(f.createdAt)} ${fmtTime(f.createdAt)}`,
+      }));
+      this.setData({ fb: list, fbLoaded: true });
+    }
+  },
+
+  async onHandled(e) {
+    const { id } = e.currentTarget.dataset;
+    const r = await api.call("rides", { action: "feedbackHandled", id, handled: true });
+    if (r.ok) wx.showToast({ title: "已标为处理", icon: "success" });
+    else wx.showToast({ title: r.msg || "失败", icon: "none" });
+    this.loadFeedback();
+  },
+
+  async loadIdentities() {
+    const res = await api.call("rides", { action: "adminIdentities" });
+    if (res.ok) {
+      const list = (res.data.list || []).map((x) => ({
+        ...x,
+        declaredText: x.declaredAt ? `${fmtDate(x.declaredAt)} ${fmtTime(x.declaredAt)}` : "",
+      }));
+      this.setData({ identities: list, idLoaded: true });
+    }
+  },
+
+  onClearIdentity(e) {
+    const { openid, name } = e.currentTarget.dataset;
+    wx.showModal({
+      title: "撤销「" + (name || openid) + "」的校内登记？",
+      content: "仅管理员可撤销；撤销后 TA 资料上的「✓ 校内已登记」绿标消失。",
+      confirmText: "撤销",
+      success: async (m) => {
+        if (!m.confirm) return;
+        const r = await api.call("rides", { action: "adminClearIdentity", targetOpenid: openid });
+        wx.showToast({ title: r.ok ? "已撤销" : r.msg || "失败", icon: "none" });
+        this.loadIdentities();
+      },
+    });
   },
 
   onResolve(e) {

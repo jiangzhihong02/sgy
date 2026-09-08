@@ -2,6 +2,25 @@
 .page {
   padding-bottom: 60rpx;
 }
+.seg {
+  display: flex;
+  margin: 24rpx;
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  color: #4e545c;
+}
+.seg-item.active {
+  color: #07c160;
+  font-weight: 600;
+  background: #e8f8ef;
+}
 .empty-sm {
   text-align: center;
   color: #8a9099;

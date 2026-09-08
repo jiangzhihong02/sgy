@@ -1,23 +1,79 @@
 <!--pages/admin/admin.wxml-->
 <view class="page">
-  <!-- 待复核举报 -->
-  <view class="section">待复核举报（{{reports.length}}）</view>
-  <view wx:if="{{reports.length}}" class="rep-list">
-    <view wx:for="{{reports}}" wx:key="_id" class="card no-margin rep-card">
-      <view class="row-between">
-        <text class="strong">{{item.targetName}}</text>
-        <text class="tag tag-red">{{item.kindLabel}}</text>
-      </view>
-      <view class="small muted rep-meta">举报人：{{item.byName}}{{item.rideLabel ? ' · ' + item.rideLabel : ''}}</view>
-      <view wx:if="{{item.note}}" class="small muted rep-note">{{item.note}}</view>
-      <view class="row rep-acts">
-        <button class="btn btn-danger-ghost act-half" data-id="{{item._id}}" data-kind="{{item.kindLabel}}"
-          data-name="{{item.targetName}}" bindtap="onResolve">坐实扣分</button>
-        <button class="btn btn-ghost act-half" data-id="{{item._id}}" bindtap="onDismiss">驳回</button>
-      </view>
+  <!-- 顶部：举报复核 / 反馈建议 -->
+  <view class="seg">
+    <view class="seg-item {{tab === 'reports' ? 'active' : ''}}" data-tab="reports" bindtap="onSwitchTab">
+      举报复核{{reports.length ? '（' + reports.length + '）' : ''}}
+    </view>
+    <view class="seg-item {{tab === 'feedback' ? 'active' : ''}}" data-tab="feedback" bindtap="onSwitchTab">
+      反馈建议{{fb.length ? '（' + fb.length + '）' : ''}}
+    </view>
+    <view class="seg-item {{tab === 'identity' ? 'active' : ''}}" data-tab="identity" bindtap="onSwitchTab">
+      校内身份{{identities.length ? '（' + identities.length + '）' : ''}}
     </view>
   </view>
-  <view wx:else class="card no-margin empty-sm">暂无待复核举报 🎉</view>
+
+  <!-- 举报复核 -->
+  <block wx:if="{{tab === 'reports'}}">
+    <view class="section">待复核举报（{{reports.length}}）</view>
+    <view wx:if="{{reports.length}}" class="rep-list">
+      <view wx:for="{{reports}}" wx:key="_id" class="card no-margin rep-card">
+        <view class="row-between">
+          <text class="strong">{{item.targetName}}</text>
+          <text class="tag tag-red">{{item.kindLabel}}</text>
+        </view>
+        <view class="small muted rep-meta">举报人：{{item.byName}}{{item.rideLabel ? ' · ' + item.rideLabel : ''}}</view>
+        <view wx:if="{{item.note}}" class="small muted rep-note">{{item.note}}</view>
+        <view class="row rep-acts">
+          <button class="btn btn-danger-ghost act-half" data-id="{{item._id}}" data-kind="{{item.kindLabel}}"
+            data-name="{{item.targetName}}" bindtap="onResolve">坐实扣分</button>
+          <button class="btn btn-ghost act-half" data-id="{{item._id}}" bindtap="onDismiss">驳回</button>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="card no-margin empty-sm">暂无待复核举报 🎉</view>
+  </block>
+
+  <!-- 反馈建议 -->
+  <block wx:if="{{tab === 'feedback'}}">
+    <view class="section">用户反馈（{{fb.length}}）</view>
+    <view wx:if="{{fb.length}}" class="rep-list">
+      <view wx:for="{{fb}}" wx:key="_id" class="card no-margin rep-card">
+        <view class="row-between">
+          <text class="strong">{{item.nickName}}</text>
+          <text class="tag {{item.status === 'pending' ? 'tag-orange' : 'tag-gray'}}">
+            {{item.status === 'pending' ? '待处理' : '已处理'}}
+          </text>
+        </view>
+        <view class="small muted rep-meta">{{item.kindLabel}} · {{item.createdText}}</view>
+        <view class="small rep-note">{{item.text}}</view>
+        <view wx:if="{{item.contact}}" class="small muted">联系方式：{{item.contact}}</view>
+        <view wx:if="{{item.status === 'pending'}}" class="row rep-acts">
+          <button class="btn btn-ghost act-half" data-id="{{item._id}}" bindtap="onHandled">标为已处理</button>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="card no-margin empty-sm">暂无反馈</view>
+  </block>
+
+  <!-- 校内身份（复核乱填；明文仅此处可见） -->
+  <block wx:if="{{tab === 'identity'}}">
+    <view class="section">校内身份登记（{{identities.length}}）</view>
+    <view wx:if="{{identities.length}}" class="rep-list">
+      <view wx:for="{{identities}}" wx:key="openid" class="card no-margin rep-card">
+        <view class="row-between">
+          <text class="strong">{{item.name}}（{{item.nickName}}）</text>
+          <text class="tag tag-green">{{item.studentId}}</text>
+        </view>
+        <view class="small muted rep-meta">登记于 {{item.declaredText}}{{item.major ? ' · ' + item.major : ''}}</view>
+        <view class="row rep-acts">
+          <button class="btn btn-danger-ghost act-half" data-openid="{{item.openid}}" data-name="{{item.name}}"
+            bindtap="onClearIdentity">撤销登记</button>
+        </view>
+      </view>
+    </view>
+    <view wx:else class="card no-margin empty-sm">还没有人登记校内身份</view>
+  </block>
 
   <!-- 代发种子局 -->
   <view class="section">代发种子局</view>
