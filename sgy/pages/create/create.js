@@ -187,13 +187,15 @@ Page({
     this._maybeSuggestLeadTime();
   },
 
-  // 选完集合时间后提示一次"提前约50分钟"（可"不再显示"永久关闭，storage 记录，不做重置入口）
+  // 选完集合时间后提示一次"提前约50分钟"（同一会话只弹一次；可"不再显示"永久关闭，storage 记录，无重置入口）
   _maybeSuggestLeadTime() {
+    if (this._leadTipShown) return; // 调时间/调日期会各触发一次，会话内去重
     let off = false;
     try {
       off = !!wx.getStorageSync("createLeadTipOff");
     } catch (e) { /* storage 不可用照常提示 */ }
     if (off) return;
+    this._leadTipShown = true;
     wx.showModal({
       title: "留出集合与 AA 时间",
       content: "建议集合时间比上课时间提前约 50 分钟——留出到校、与队友当面 AA 的时间，避免赶上课。",

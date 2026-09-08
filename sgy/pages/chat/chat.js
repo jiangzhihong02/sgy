@@ -79,7 +79,7 @@ Page({
       const c = cardOf(r);
       return {
         rideId: r._id,
-        done: c.statusLabel === "已完成",
+        done: r.status === "done", // 用状态码判断（不用显示文案，防标签改名失效）
         short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写
         day: c.dayText,
         route: c.routeLabel,
