@@ -132,6 +132,22 @@ Page({
   },
 
   async onJoin() {
+    // 加急局成员侧承诺：出发在即已过免费退出线，加入后中途退出计爽约（见 CONTEXT 加急局）
+    if (this.data.ride && this.data.ride.urgent && !this._urgentJoinConfirmed) {
+      wx.showModal({
+        title: "加入加急局？",
+        content: "加急局出发在即（30 分钟内）：加入后中途退出计爽约、扣信用分。确认加入？",
+        confirmText: "确认加入",
+        cancelText: "再想想",
+        success: (r) => {
+          if (r.confirm) {
+            this._urgentJoinConfirmed = true;
+            this.onJoin();
+          }
+        },
+      });
+      return;
+    }
     const res = await api.call("join", { rideId: this._rideId });
     if (res.ok) {
       const warns = (res.data && res.data.warnings) || [];
