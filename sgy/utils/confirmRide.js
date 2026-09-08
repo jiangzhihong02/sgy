@@ -40,7 +40,7 @@ async function maybePromptOnce() {
       }
     },
     fail: () => {
-      /* 用户点掉遮罩：不记，下次再问 */
+      remember(); // 弹过一次就算今天的额度（点掉遮罩不再反复弹）
     },
   });
 }

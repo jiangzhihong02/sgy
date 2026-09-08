@@ -12,7 +12,6 @@ Page({
     rooms: [],
     hasRooms: false,
     curRideId: "",
-    curTitle: "",
     curDay: "", // 顶部两行式：第一行时间
     curRoute: "", // 第二行起终点
     curSub: "",
@@ -69,7 +68,6 @@ Page({
       const c = cardOf(r);
       return {
         rideId: r._id,
-        label: `${c.dayText} ${c.routeLabel}`, // 顶部队伍条：完整
         short: `${c.dayText} · ${shortPoint(r.from)} → ${shortPoint(r.to)}`, // 切换条：简写
         day: c.dayText,
         route: c.routeLabel,
@@ -95,7 +93,6 @@ Page({
     if (!room) return;
     this.setData({
       curRideId: rideId,
-      curTitle: room.label,
       curDay: room.day,
       curRoute: room.route,
       curSub: room.statusLabel,
