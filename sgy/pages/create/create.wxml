@@ -99,7 +99,7 @@
     </view>
     <view class="field">
       <view class="field-label">备注</view>
-      <input class="flex-1" placeholder="如：的士站最右边集合、大概几点到" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
+      <input class="flex-1" placeholder="例：已有 3 人同行、再招 1 位拼满 / 的士站最右边集合" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
     </view>
   </view>
 
