@@ -13,7 +13,7 @@ Page({
   },
 
   onLoad() {
-    api.call("rides", { action: "me" }).then((r) => {
+    api.call("me").then((r) => {
       if (!r.ok) return;
       const s = r.data.user.schoolId;
       if (s) {
@@ -51,8 +51,7 @@ Page({
     if (this.data.submitting) return;
     this.setData({ submitting: true });
     wx.showLoading({ title: "保存中", mask: true });
-    const res = await api.call("rides", {
-      action: "identitySave",
+    const res = await api.call("identitySave", {
       studentId,
       name,
       major: this.data.major.trim(),

@@ -26,7 +26,7 @@ Component({
 
     async loadMember(target, fallbackName) {
       wx.showLoading({ title: "", mask: true });
-      const res = await api.call("rides", { action: "memberInfo", rideId: this._rideId, targetOpenid: target });
+      const res = await api.call("memberInfo", { rideId: this._rideId, targetOpenid: target });
       wx.hideLoading();
       const m = res.ok ? res.data.member : null;
       const isMe = target === this._me;
@@ -75,8 +75,7 @@ Component({
     async toggleBlock() {
       const mb = this.data.member;
       if (!mb || mb.isMe) return;
-      const res = await api.call("rides", {
-        action: "block",
+      const res = await api.call("block", {
         rideId: this._rideId,
         targetOpenid: mb.openid,
         block: !mb.blocked,
@@ -100,7 +99,7 @@ Component({
 
     async submitReport(kind) {
       const mb = this.data.member;
-      const res = await api.call("rides", { action: "complaint", rideId: this._rideId, targetOpenid: mb.openid, kind });
+      const res = await api.call("complaint", { rideId: this._rideId, targetOpenid: mb.openid, kind });
       if (!res.ok) {
         wx.showModal({ title: "举报未提交", content: res.msg || "请重试", showCancel: false });
         return;
@@ -114,7 +113,7 @@ Component({
       const mb = this.data.member;
       if (!mb || mb.isMe || !this._isDone) return;
       wx.showLoading({ title: "", mask: true });
-      const res = await api.call("rides", { action: "reinvite", rideId: this._rideId, targetOpenid: mb.openid });
+      const res = await api.call("reinvite", { rideId: this._rideId, targetOpenid: mb.openid });
       wx.hideLoading();
       if (!res.ok) {
         wx.showModal({ title: "再约失败", content: res.msg || "请重试", showCancel: false });

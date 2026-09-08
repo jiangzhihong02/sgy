@@ -35,8 +35,7 @@ Page({
     if (this.data.submitting) return;
     this.setData({ submitting: true });
     wx.showLoading({ title: "提交中", mask: true });
-    const res = await api.call("rides", {
-      action: "feedback",
+    const res = await api.call("feedback", {
       kind: this.data.kind,
       text,
       contact: this.data.contact.trim(),

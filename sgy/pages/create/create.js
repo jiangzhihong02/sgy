@@ -25,7 +25,7 @@ function timeIndexes(time) {
 }
 
 function buildInOptions() {
-  return routeSvc.get().filter((r) => r.directionId === "in").map((r) => ({
+  return routeSvc.byDirection("in").map((r) => ({
     routeId: r.routeId,
     label: r.from,
     to: r.to,
@@ -33,7 +33,7 @@ function buildInOptions() {
 }
 function buildOutOptions() {
   // 预置 = 3 个口岸下车点；"自定义…"放在最后
-  return routeSvc.get().filter((r) => r.directionId === "out").map((r) => ({
+  return routeSvc.byDirection("out").map((r) => ({
     routeId: r.routeId,
     label: r.to,
     isCustom: false,
@@ -241,8 +241,7 @@ Page({
 
     this.setData({ submitting: true });
     wx.showLoading({ title: "发起中", mask: true });
-    const res = await api.call("rides", {
-      action: "create",
+    const res = await api.call("create", {
       date,
       time,
       capacity,

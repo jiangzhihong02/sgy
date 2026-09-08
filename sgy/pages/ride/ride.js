@@ -58,8 +58,8 @@ Page({
 
   async refresh() {
     const [meRes, res] = await Promise.all([
-      api.call("rides", { action: "me" }),
-      api.call("rides", { action: "detail", rideId: this._rideId }),
+      api.call("me"),
+      api.call("detail", { rideId: this._rideId }),
     ]);
     if (meRes.ok) this._openid = meRes.data.user.openid;
     if (!res.ok) {
@@ -120,7 +120,7 @@ Page({
   },
 
   async run(action, data, successText) {
-    const res = await api.call("rides", { action, rideId: this._rideId, ...data });
+    const res = await api.call(action, { rideId: this._rideId, ...data });
     if (res.ok) {
       if (successText) wx.showToast({ title: successText, icon: "success" });
       this.refresh();
@@ -131,7 +131,7 @@ Page({
   },
 
   async onJoin() {
-    const res = await api.call("rides", { action: "join", rideId: this._rideId });
+    const res = await api.call("join", { rideId: this._rideId });
     if (res.ok) {
       const warns = (res.data && res.data.warnings) || [];
       if (warns.length) {
@@ -213,7 +213,7 @@ Page({
   },
   async onSaveNote() {
     const note = this.data.noteDraft.trim();
-    const res = await api.call("rides", { action: "updateNote", rideId: this._rideId, note });
+    const res = await api.call("updateNote", { rideId: this._rideId, note });
     if (res.ok) {
       this.setData({ editingNote: false });
       this.refresh();

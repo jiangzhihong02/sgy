@@ -31,7 +31,7 @@ Page({
       tick: () => {
         const id = this.data.curRideId;
         if (!id) return;
-        api.call("rides", { action: "messages", rideId: id }).then((res) => {
+        api.call("messages", { rideId: id }).then((res) => {
           if (res.ok && this.data.curRideId === id) this.applyMessages(res.data.messages);
         });
       },
@@ -57,7 +57,7 @@ Page({
   // 缓存自己的 openid，用于判断"我发的消息"（气泡靠右）
   ensureMe() {
     if (this._openid) return Promise.resolve();
-    return api.call("rides", { action: "me" }).then((r) => {
+    return api.call("me").then((r) => {
       if (r.ok) {
         this._openid = r.data.user.openid;
         this.applyMessages(this.data.messages);
@@ -68,7 +68,7 @@ Page({
   async refreshRooms() {
     // 已有队伍时静默刷新，避免每次进 Tab 闪"加载中"；首次/空态才显示全屏 loading
     if (!this.data.hasRooms) this.setData({ loading: true });
-    const res = await api.call("rides", { action: "my" });
+    const res = await api.call("my");
     const ongoing = res.ok ? res.data.ongoing || [] : [];
     const rooms = ongoing.map((r) => {
       const c = cardOf(r);
@@ -108,7 +108,7 @@ Page({
       curRoute: room.route,
       curSub: room.statusLabel,
     });
-    const res = await api.call("rides", { action: "detail", rideId });
+    const res = await api.call("detail", { rideId });
     if (res.ok) {
       const d = res.data.ride;
       this._genderOf = {};
@@ -180,7 +180,7 @@ Page({
     const text = this.data.chatInput.trim();
     if (!text || this.data.sending) return;
     this.setData({ sending: true });
-    const res = await api.call("rides", { action: "sendMessage", rideId: this.data.curRideId, text });
+    const res = await api.call("sendMessage", { rideId: this.data.curRideId, text });
     this.setData({ sending: false, chatInput: "" });
     if (res.ok) this.loadRoom(this.data.curRideId);
     else wx.showToast({ title: res.msg || "发送失败", icon: "none" });
@@ -250,7 +250,7 @@ Page({
       });
   },
   async sendImage(dataUri) {
-    const res = await api.call("rides", { action: "sendMessage", rideId: this.data.curRideId, text: dataUri, type: "image" });
+    const res = await api.call("sendMessage", { rideId: this.data.curRideId, text: dataUri, type: "image" });
     if (res.ok) this.loadRoom(this.data.curRideId);
     else wx.showModal({ title: "发送失败", content: res.msg || "请重试", showCancel: false });
   },

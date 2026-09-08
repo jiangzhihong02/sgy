@@ -12,7 +12,7 @@ async function maybePromptOnce() {
   } catch (e) {
     /* storage 不可用时照常提示 */
   }
-  const res = await api.call("rides", { action: "confirmPending" });
+  const res = await api.call("confirmPending");
   if (!res.ok || !(res.data && res.data.list) || !res.data.list.length) return;
   const first = res.data.list[0];
   const remember = () => {
@@ -27,12 +27,12 @@ async function maybePromptOnce() {
     success: (r) => {
       if (r.tapIndex === 0) {
         remember();
-        api.call("rides", { action: "confirmRide", rideId: first.rideId, rode: true }).then((x) =>
+        api.call("confirmRide", { rideId: first.rideId, rode: true }).then((x) =>
           wx.showToast({ title: x.ok ? "已补签到，不扣分" : (x.msg || "失败"), icon: "none" })
         );
       } else if (r.tapIndex === 1) {
         remember();
-        api.call("rides", { action: "confirmRide", rideId: first.rideId, rode: false }).then((x) =>
+        api.call("confirmRide", { rideId: first.rideId, rode: false }).then((x) =>
           wx.showToast({ title: x.ok ? "已记爽约" : (x.msg || "失败"), icon: "none" })
         );
       } else {

@@ -13,6 +13,11 @@ function get() {
   return cache || snapshot();
 }
 
+/** 按方向取线路（返校 in / 离校 out）；发局页与找局筛选共用，避免各处重复 filter。 */
+function byDirection(dir) {
+  return get().filter((r) => r.directionId === dir);
+}
+
 /** 是否已从云端拉到线路目录（已拉到才需要重建下拉，避免每页每次都重建）。 */
 function isLoaded() {
   return !!cache;
@@ -22,7 +27,7 @@ function isLoaded() {
 function load() {
   if (cache) return Promise.resolve(cache);
   return api
-    .call("rides", { action: "routes" })
+    .call("routes")
     .then((res) => {
       if (res.ok && (res.data.routes || []).length) {
         cache = (res.data.routes || [])
@@ -34,4 +39,4 @@ function load() {
     .catch(() => snapshot());
 }
 
-module.exports = { get, isLoaded, load };
+module.exports = { get, byDirection, isLoaded, load };

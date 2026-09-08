@@ -45,12 +45,12 @@ Page({
   },
 
   async loadPending() {
-    const res = await api.call("rides", { action: "adminPending" });
+    const res = await api.call("adminPending");
     if (res.ok) this.setData({ reports: res.data.reports || [] });
   },
 
   async loadFeedback() {
-    const res = await api.call("rides", { action: "feedbackList" });
+    const res = await api.call("feedbackList");
     if (res.ok) {
       const list = (res.data.list || []).map((f) => ({
         ...f,
@@ -62,14 +62,14 @@ Page({
 
   async onHandled(e) {
     const { id } = e.currentTarget.dataset;
-    const r = await api.call("rides", { action: "feedbackHandled", id, handled: true });
+    const r = await api.call("feedbackHandled", { id, handled: true });
     if (r.ok) wx.showToast({ title: "已标为处理", icon: "success" });
     else wx.showToast({ title: r.msg || "失败", icon: "none" });
     this.loadFeedback();
   },
 
   async loadIdentities() {
-    const res = await api.call("rides", { action: "adminIdentities" });
+    const res = await api.call("adminIdentities");
     if (res.ok) {
       const list = (res.data.list || []).map((x) => ({
         ...x,
@@ -87,7 +87,7 @@ Page({
       confirmText: "撤销",
       success: async (m) => {
         if (!m.confirm) return;
-        const r = await api.call("rides", { action: "adminClearIdentity", targetOpenid: openid });
+        const r = await api.call("adminClearIdentity", { targetOpenid: openid });
         wx.showToast({ title: r.ok ? "已撤销" : r.msg || "失败", icon: "none" });
         this.loadIdentities();
       },
@@ -102,7 +102,7 @@ Page({
       confirmText: "坐实扣分",
       success: async (m) => {
         if (!m.confirm) return;
-        const r = await api.call("rides", { action: "resolveReport", reportId: id, action: "uphold" });
+        const r = await api.call("resolveReport", { reportId: id, action: "uphold" });
         wx.showToast({ title: r.ok ? "已坐实并扣分" : r.msg || "失败", icon: "none" });
         this.loadPending();
       },
@@ -111,7 +111,7 @@ Page({
 
   onDismiss(e) {
     const { id } = e.currentTarget.dataset;
-    api.call("rides", { action: "resolveReport", reportId: id, action: "dismiss" }).then((r) => {
+    api.call("resolveReport", { reportId: id, action: "dismiss" }).then((r) => {
       wx.showToast({ title: r.ok ? "已驳回" : r.msg || "失败", icon: "none" });
       this.loadPending();
     });
@@ -148,8 +148,7 @@ Page({
     }
     this.setData({ seeding: true });
     wx.showLoading({ title: "代发中", mask: true });
-    const res = await api.call("rides", {
-      action: "create",
+    const res = await api.call("create", {
       routeId: opt.routeId,
       date: this.data.date,
       time: this.data.time,

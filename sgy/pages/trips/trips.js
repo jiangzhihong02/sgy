@@ -30,7 +30,7 @@ Page({
 
   async refresh() {
     this.setData({ loading: true });
-    const res = await api.call("rides", { action: "my" });
+    const res = await api.call("my");
     this._ongoing = res.ok ? res.data.ongoing : [];
     this._done = res.ok ? res.data.history : [];
     if (!res.ok) wx.showToast({ title: res.msg || "加载失败", icon: "none" });

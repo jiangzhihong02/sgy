@@ -30,14 +30,14 @@ const END_TIPS = [
 
 function inboundPlaces() {
   const seen = [];
-  routeSvc.get().filter((r) => r.directionId === "in").forEach((r) => {
+  routeSvc.byDirection("in").forEach((r) => {
     if (!seen.some((x) => x.id === r.from)) seen.push({ id: r.from, label: r.from });
   });
   seen.push({ id: CUSTOM, label: "自定义上车点（其它香港地点）" }); // 返校自定义上车点（ADR-0014）
   return seen;
 }
 function outboundPlaces() {
-  const seen = routeSvc.get().filter((r) => r.directionId === "out").map((r) => ({ id: r.to, label: r.to }));
+  const seen = routeSvc.byDirection("out").map((r) => ({ id: r.to, label: r.to }));
   seen.push({ id: CUSTOM, label: "自定义下车点（其它香港地点）" });
   return seen;
 }
@@ -109,7 +109,7 @@ Page({
   },
 
   async refresh() {
-    const res = await api.call("rides", { action: "list" });
+    const res = await api.call("list");
     if (!res.ok) {
       // 失败不再伪装成"空列表"：置错误态（首屏可见）+ 自动重试一次（冷启动/刚重传云函数常见）
       this.setData({ rides: [], loading: false, loaded: true, loadErr: true });
@@ -132,7 +132,7 @@ Page({
   },
 
   async loadInvites() {
-    const res = await api.call("rides", { action: "inviteList" });
+    const res = await api.call("inviteList");
     this.setData({ invites: res.ok ? res.data.invites : [] });
   },
 
@@ -148,7 +148,7 @@ Page({
   async declineInvite() {
     const first = this.data.invites[0];
     if (!first) return;
-    await api.call("rides", { action: "inviteRespond", inviteId: first._id, accept: false });
+    await api.call("inviteRespond", { inviteId: first._id, accept: false });
     this.loadInvites();
   },
 

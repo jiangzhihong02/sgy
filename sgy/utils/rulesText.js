@@ -15,10 +15,6 @@ const FALLBACK = {
   ],
   preview:
     "最少 2 人成局，人数上限由你设（2–6）。按出发时间倒推：提前 60 分钟未满员时，全员确认是否按当前人数出发（没回复默认同意，至出发前 45 分钟）；提前 30 分钟前可自由退出、你可解散；提前 10 分钟停止加入、按当时人数锁定成局，不足 2 人自动取消（不计爽约）；到点在上车点的士站集合点「我到了」，上车后 10 分钟停止签到，局结束仍未签到将按爽约自动扣信用分。",
-  creditText:
-    "初始 100，封顶 120。爽约（出发前 30 分钟后退出、或到点没「我到了」）自动 -20；成功同行 +1。拼车结束后，队友可就 迟到(-10) / 缺勤·没来(-20) / 性别不实(-20) 举报：同一局 ≥2 名成员联名即自动坐实，否则转管理员复核。低于 60 暂停发起新局 7 天（仍可加入）。",
-  privacyText:
-    "性别为自报，仅用于组队时以头像框颜色辨认（蓝男·粉女）。填写的性别与真实不符，会被同车人举报：坐实后清空性别并扣信用分；若同一局有 3 名以上成员同报、或你被多次坐实，则系统把性别改为判定的另一性别并锁定（仅管理员可纠正）。不展示微信号，站内联系。",
   creditTable: [
     { event: "初始", note: "注册即默认", delta: "+100", up: true },
     { event: "爽约", note: "出发前 30 分钟后退出 / 到点没签到，经 48h 补确认仍没上车或逾期不答", delta: "-20", up: false },
@@ -64,7 +60,7 @@ function payload() {
 function load() {
   if (cache) return Promise.resolve(cache);
   return api
-    .call("rides", { action: "getRules" })
+    .call("getRules")
     .then((res) => {
       if (res.ok && res.data && Array.isArray(res.data.timeline) && res.data.limits) cache = res.data;
       return cache || FALLBACK;
@@ -74,11 +70,9 @@ function load() {
 
 const timeline = () => (payload().timeline || []).map((r) => ({ t: r.t, d: r.d }));
 const preview = () => payload().preview || "";
-const creditText = () => payload().creditText || "";
-const privacyText = () => payload().privacyText || "";
 const creditTable = () => payload().creditTable || [];
 const creditFooter = () => payload().creditFooter || "";
 const privacySections = () => payload().privacySections || [];
 const imgMax = () => ((payload().limits || {}).imgMax) || 500000;
 
-module.exports = { payload, load, timeline, preview, creditText, privacyText, creditTable, creditFooter, privacySections, imgMax };
+module.exports = { payload, load, timeline, preview, creditTable, creditFooter, privacySections, imgMax };
