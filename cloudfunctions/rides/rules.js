@@ -110,7 +110,12 @@ function rulePayload() {
     creditTable: CREDIT_TABLE,
     creditFooter: CREDIT_FOOTER,
     privacySections: PRIVACY_SECTIONS,
-    limits: { msgMax: MSG_MAX, imgMax: MSG_IMG_MAX, noteMax: NOTE_MAX },
+    limits: {
+      msgMax: MSG_MAX,
+      imgMax: MSG_IMG_MAX,
+      noteMax: NOTE_MAX,
+      chatKeepMs: T_SETTLE + CONFIRM_WINDOW_MS, // 聊天室保留窗：结算后 48h（与补签确认同宽），过后服务端禁发
+    },
   };
 }
 

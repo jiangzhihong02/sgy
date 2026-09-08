@@ -1,11 +1,15 @@
 // chat.js —— 局内聊天：发消息（文本 / 图片 base64）
-const { MSG_MAX, MSG_IMG_MAX } = require("./rules");
+const { MSG_MAX, MSG_IMG_MAX, T_SETTLE, CONFIRM_WINDOW_MS } = require("./rules");
 const { db, ok, fail, ensureUser, ensureRegistered, getMember, getRide } = require("./db");
 
 async function sendMessage(event, openid) {
   const ride = await getRide(event.rideId);
   if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
   if (!getMember(ride, openid)) return fail("NOT_IN", "只有成员能在局内发言");
+  // 聊天室保留窗：局完成后保留 48h（与补签确认窗口同宽，供补账/看收款码）；之后关闭不可再发，历史消息仍可在行程查看
+  if (ride.status === "done" && Date.now() > ride.boardAt + T_SETTLE + CONFIRM_WINDOW_MS) {
+    return fail("CHAT_CLOSED", "拼车已结束超过 48 小时，聊天室已关闭（历史消息仍可在行程查看）");
+  }
   const needReg = await ensureRegistered(openid);
   if (needReg) return needReg;
   const isImage = event.type === "image";

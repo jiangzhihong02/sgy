@@ -27,6 +27,7 @@
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
 - **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
 - **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
+- **聊天室生命周期（2026-09-08）**：局完成后保留 48h（`chatKeepMs = T_SETTLE + CONFIRM_WINDOW_MS`），期间仍可发言（补 AA 账）；过后 `sendMessage` 返回 `CHAT_CLOSED`；历史消息随时可在「行程」查看。
 - **云函数收敛（2026-09-07）**：独立 `user` 云函数删除、并入 `rides`（用户动作见 `rides/account.js`，客户端统一 `call('rides', …)`）；管理员名单收敛到 `rides/db.js`；性别不实分级收敛到 `rides/gender.js`（`social.complaint` 与 `account.resolveReport` 共用）。
 
 ## 1. 集合与文档结构
@@ -170,9 +171,9 @@ ongoing
 - `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
 - `memberInfo` / `block`：成员资料（含信用/是否已标记/`schoolVerified` 仅绿标）与"不与其乘车"标记。
 - `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
-- `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。
+- `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。已完成局保留窗 `boardAt + T_SETTLE + CONFIRM_WINDOW_MS`（48h）内仍可发（补账用），过后返回 `CHAT_CLOSED`。
 - `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
-- `getRules`：下发面向用户规则面板 `{ timeline, preview, creditTable, creditFooter, privacySections, limits:{imgMax,…} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT 已删除，避免双轨漂移）；客户端 `sgy/utils/rulesText.js` 快照兜底。
+- `getRules`：下发面向用户规则面板 `{ timeline, preview, creditTable, creditFooter, privacySections, limits:{imgMax, chatKeepMs, …} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT 已删除，避免双轨漂移）；`chatKeepMs` 供客户端判断聊天室保留窗；客户端 `sgy/utils/rulesText.js` 快照兜底。
 - `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
 - `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
 - `feedback`（仅注册用户）/ `feedbackList`（管理员）/ `feedbackHandled`（管理员）：提交/查看/标记已处理用户反馈（集合 `feedbacks`，见 §1）。
