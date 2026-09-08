@@ -24,6 +24,7 @@ function inboundPlaces() {
   routeSvc.get().filter((r) => r.directionId === "in").forEach((r) => {
     if (!seen.some((x) => x.id === r.from)) seen.push({ id: r.from, label: r.from });
   });
+  seen.push({ id: CUSTOM, label: "自定义上车点（其它香港地点）" }); // 返校自定义上车点（ADR-0014）
   return seen;
 }
 function outboundPlaces() {
@@ -194,7 +195,11 @@ Page({
         if (dir !== "all" && r.directionId !== dir) return false;
         if (place !== "all") {
           if (dir === "in") {
-            if (r.from !== place) return false;
+            if (place === CUSTOM) {
+              if (r.routeId) return false; // 自定义上车点的返校局没有 routeId
+            } else if (r.from !== place) {
+              return false;
+            }
           } else if (dir === "out") {
             if (place === CUSTOM) {
               if (r.routeId) return false; // 只有自定义下车点的局没有 routeId

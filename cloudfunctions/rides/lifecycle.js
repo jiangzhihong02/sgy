@@ -51,8 +51,13 @@ async function create(event, openid) {
     const to = String(event.to || "").trim();
     if (!to) return fail("BAD_DEST", "请填写下车地点");
     route = { routeId: "", directionId: "out", from: "香港教育大学", to: to.slice(0, 14) };
+  } else if (event.directionId === "in") {
+    // 返校支持自定义上车点（ADR-0014，与离校对称）；to 固定为教大
+    const from = String(event.from || "").trim();
+    if (!from) return fail("BAD_DEST", "请填写上车地点");
+    route = { routeId: "", directionId: "in", from: from.slice(0, 14), to: "香港教育大学" };
   } else {
-    return fail("BAD_ROUTE", "缺少线路或下车地点");
+    return fail("BAD_ROUTE", "缺少线路或上车地点");
   }
 
   const boardAt = event.boardAt ? Number(event.boardAt) : dateTimeToMs(date, time);

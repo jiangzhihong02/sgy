@@ -156,7 +156,7 @@ ongoing
 
 ### `rides`（主业务）
 `exports.main = async (event)`，按 `event.action` 分发：
-- `create`：入 `{ routeId, date, time, capacity, note }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009）。出 `{ rideId }`。
+- `create`：入 `{ routeId, date, time, capacity, note }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009），`directionId='in'` 时可传 `from` 作自定义上车点（ADR-0014，均 ≤14 字）。出 `{ rideId }`。
 - `list`：入 `{ directionId?, pickup?, date? }` 可选。出未出发局数组（供"找局"，含 members 精简视图与 poll 状态）。默认只返回 `status∈{recruiting,locked}` 且 `boardAt > now − 某窗口`。
 - `my`：出我参与/发起的局（ongoing 进行中 / done 历史），不带消息。
 - `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到，+ 最新 N 条 messages。

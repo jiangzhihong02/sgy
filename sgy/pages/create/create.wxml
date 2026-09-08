@@ -25,11 +25,17 @@
           <view class="field-value">{{inLabel || inOptions[inIndex].label}}</view>
         </picker>
       </view>
+      <view wx:if="{{pickupCustom}}" class="field">
+        <view class="field-label">自定义</view>
+        <input class="flex-1" placeholder="如：上水站 / 粉岭 / 落马洲…" value="{{customPickup}}"
+          bindinput="onCustomPickupInput" maxlength="14" />
+      </view>
       <view class="field">
         <view class="field-label">终点</view>
         <view class="field-value muted">香港教育大学（固定）</view>
       </view>
     </view>
+    <view wx:if="{{pickupCustom}}" class="section-sub">可拼到从任一香港地点上车返校（离校对称），车费现场 AA</view>
   </block>
 
   <!-- 行程：离校 -->

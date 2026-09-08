@@ -1,5 +1,5 @@
 // pages/create/create.js —— 发局（已接云 rides.create）
-// 返校 = 深圳→教大：选上车点（固定终点教大）；离校 = 教大→口岸/就近：选或自定义下车点。
+// 返校 = 深圳→教大：选上车点（固定终点教大）或自定义上车点；离校 = 教大→口岸/就近：选或自定义下车点。
 const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { DIRECTIONS, fmtDate, fmtTime, dayLabel } = require("../../utils/domain.js");
@@ -47,9 +47,11 @@ Page({
     selDirDesc: DIRECTIONS.IN.desc,
 
     // 返校
-    inOptions: buildInOptions(),
+    inOptions: buildInOptions().concat([{ routeId: "", label: "自定义上车点", isCustom: true }]),
     inIndex: 0,
     inLabel: "",
+    pickupCustom: false,
+    customPickup: "",
 
     // 离校
     outOptions: buildOutOptions().concat([{ routeId: "", label: "自定义下车点", isCustom: true }]),
@@ -93,12 +95,14 @@ Page({
   // 线路目录以云端为准：拉到后重建下拉（保持当前方向，回退到首项/非自定义）
   async refreshRoutes() {
     await routeSvc.load();
-    const inOptions = buildInOptions();
+    const inOptions = buildInOptions().concat([{ routeId: "", label: "自定义上车点", isCustom: true }]);
     const outOptions = buildOutOptions().concat([{ routeId: "", label: "自定义下车点", isCustom: true }]);
     const patch = { inOptions, outOptions };
     if (this.data.directionId === "in") {
       patch.inIndex = 0;
       patch.inLabel = inOptions[0] ? inOptions[0].label : "";
+      patch.pickupCustom = false;
+      patch.customPickup = "";
     } else {
       patch.outIndex = 0;
       patch.destCustom = false;
@@ -114,7 +118,11 @@ Page({
         selDirDesc: DIRECTIONS.IN.desc,
         inLabel: first ? first.label : "",
       };
-      if (init) patch.inIndex = 0;
+      if (init) {
+        patch.inIndex = 0;
+        patch.pickupCustom = false;
+        patch.customPickup = "";
+      }
       this.setData(patch);
     } else {
       this.setData({ selDirDesc: DIRECTIONS.OUT.desc });
@@ -130,7 +138,8 @@ Page({
 
   onPickIn(e) {
     const idx = Number(e.detail.value);
-    this.setData({ inIndex: idx, inLabel: this.data.inOptions[idx].label });
+    const opt = this.data.inOptions[idx];
+    this.setData({ inIndex: idx, inLabel: opt.label, pickupCustom: !!opt.isCustom });
   },
 
   onPickOut(e) {
@@ -139,6 +148,9 @@ Page({
     this.setData({ outIndex: idx, destCustom: !!opt.isCustom });
   },
 
+  onCustomPickupInput(e) {
+    this.setData({ customPickup: e.detail.value });
+  },
   onCustomDestInput(e) {
     this.setData({ customDest: e.detail.value });
   },
@@ -194,10 +206,21 @@ Page({
     let routeText; // 纯"起点 → 终点"，不含 返校/离校 前缀（冲突对比表用）
     let summary;
     if (directionId === "in") {
-      const opt = this.data.inOptions[this.data.inIndex];
-      routePayload = { routeId: opt.routeId };
-      routeText = `${opt.label} → 香港教育大学`;
-      summary = `返校 ${routeText}`;
+      if (this.data.pickupCustom) {
+        const from = this.data.customPickup.trim();
+        if (!from) {
+          wx.showToast({ title: "请填写上车地点", icon: "none" });
+          return;
+        }
+        routePayload = { directionId: "in", from };
+        routeText = `${from} → 香港教育大学`;
+        summary = `返校 ${routeText}`;
+      } else {
+        const opt = this.data.inOptions[this.data.inIndex];
+        routePayload = { routeId: opt.routeId };
+        routeText = `${opt.label} → 香港教育大学`;
+        summary = `返校 ${routeText}`;
+      }
     } else {
       if (this.data.destCustom) {
         const to = this.data.customDest.trim();
