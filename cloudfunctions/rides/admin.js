@@ -1,7 +1,7 @@
-// admin.js —— 管理员子域（复核 / 封禁 / 性别纠错 / 校内身份管理 / 种子局联调）
+// admin.js —— 管理员子域（复核 / 封禁 / 性别纠错 / 校内身份管理 / 种子局联调 / 内容安全自检）
 // 管理员名单唯一来源 db.js（isAdmin）；扣分定级唯一来源 rules.js KIND_DELTA；性别分级复用 gender.js。
 // 复核/身份管理动作自 account.js 迁入（2026-09-08）："管理员"一个模块一个家。
-const { db, _, ok, fail, ensureUser, applyCreditDelta, isAdmin } = require("./db");
+const { db, _, ok, fail, ensureUser, applyCreditDelta, isAdmin, cloud } = require("./db");
 const { KIND_DELTA } = require("./rules");
 const { applyGenderFake } = require("./gender");
 
@@ -200,6 +200,24 @@ async function adminReset(event, openid) {
   return ok({ removed });
 }
 
+// 内容安全自检：直调 msgSecCheck 返回原始结果，验证个人主体/权限是否放行。
+// 用途：上线对外宣称"已接入内容安全"前先跑一次——返回 errCode 0 / suggest=pass 才说明真可用；
+// config.json 加权限后需重传云函数，权限缓存约 10 分钟（此间报 -604101 属正常，稍后再试）。
+async function secProbe(event, openid) {
+  if (openid && !isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
+  const out = { errCode: null, errMsg: "", suggest: null, hit87014: null };
+  try {
+    const res = await cloud.openapi.security.msgSecCheck({ content: "深港通勤，拼车组队，明天一起出发" });
+    out.errCode = res && res.errCode;
+    out.errMsg = (res && res.errMsg) || "";
+    out.suggest = res && res.result && res.result.suggest;
+  } catch (e) {
+    out.errCode = e && (e.errCode != null ? e.errCode : e.errcode);
+    out.errMsg = (e && (e.errMsg || e.message)) || "";
+  }
+  return ok(out);
+}
+
 module.exports = {
   adminPending,
   resolveReport,
@@ -209,4 +227,5 @@ module.exports = {
   adminClearIdentity,
   adminSeedDone,
   adminReset,
+  secProbe,
 };

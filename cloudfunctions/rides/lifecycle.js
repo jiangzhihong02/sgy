@@ -29,6 +29,7 @@ const {
   getRide,
   findTimeConflict,
 } = require("./db");
+const { checkText } = require("./safe"); // 内容安全：自定义地点/备注入库前拦截违规
 
 // 冲突是否因"同方向往返不足"（区别于单纯出发太近）
 const dirLabel = (d) => (d === "in" ? "返校" : d === "out" ? "离校" : "");
@@ -53,11 +54,15 @@ async function create(event, openid) {
     // 离校支持自定义下车点（如粉岭），见 ADR-0009；from 固定为学校
     const to = String(event.to || "").trim();
     if (!to) return fail("BAD_DEST", "请填写下车地点");
+    const toSafe = await checkText(to);
+    if (!toSafe.safe) return fail("UNSAFE_CONTENT", "下车地点含违规或不当内容，请修改");
     route = { routeId: "", directionId: "out", from: "香港教育大学", to: to.slice(0, 14) };
   } else if (event.directionId === "in") {
     // 返校支持自定义上车点（ADR-0014，与离校对称）；to 固定为教大
     const from = String(event.from || "").trim();
     if (!from) return fail("BAD_DEST", "请填写上车地点");
+    const fromSafe = await checkText(from);
+    if (!fromSafe.safe) return fail("UNSAFE_CONTENT", "上车地点含违规或不当内容，请修改");
     route = { routeId: "", directionId: "in", from: from.slice(0, 14), to: "香港教育大学" };
   } else {
     return fail("BAD_ROUTE", "缺少线路或上车地点");
@@ -73,6 +78,10 @@ async function create(event, openid) {
   } else if (boardAt - Date.now() <= T_FREE_EXIT) {
     return fail("TOO_SOON", "出发时间需至少晚于当前 30 分钟，好让别人能加入");
   }
+
+  // 备注内容安全（空备注跳过）
+  const noteSafe = await checkText(note);
+  if (!noteSafe.safe) return fail("UNSAFE_CONTENT", "备注含违规或不当内容，请修改后再发起");
 
   const user = await ensureUser(openid);
   if (user.credit < CREDIT_LOW) return fail("HOST_BLOCKED", "信用分低于 60，暂停发起新局 7 天");
@@ -265,6 +274,8 @@ async function updateNote(event, openid) {
   if (ride.hostOpenid !== openid) return fail("NOT_HOST", "只有发起人能修改备注");
   if (!["recruiting", "locked"].includes(ride.status)) return fail("NOT_EDITABLE", "该局已结束，不能改备注");
   const note = String(event.note || "").trim().slice(0, NOTE_MAX);
+  const noteSafe = await checkText(note);
+  if (!noteSafe.safe) return fail("UNSAFE_CONTENT", "备注含违规或不当内容，请修改");
   await db.collection("rides").doc(ride._id).update({ data: { note, updatedAt: Date.now() } });
   return ok({ note });
 }

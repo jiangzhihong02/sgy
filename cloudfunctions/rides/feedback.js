@@ -1,6 +1,7 @@
 // feedback.js —— 用户反馈与建议（仅注册用户可提交；管理员列表/标记处理）
 // 集合：feedbacks { openid, nickName(快照), kind, text, contact(选填), status, createdAt }。
 const { db, ok, fail, ensureUser, ensureRegistered, isAdmin } = require("./db");
+const { checkText } = require("./safe"); // 内容安全：反馈文字入库前拦截违规
 
 const KIND_LABEL = { suggestion: "建议", bug: "问题/Bug", other: "其它" };
 const FB_TEXT_MAX = 500;
@@ -10,8 +11,10 @@ async function submit(event, openid) {
   const needReg = await ensureRegistered(openid); // 仅注册用户；游客引导去注册
   if (needReg) return needReg;
   const kind = Object.prototype.hasOwnProperty.call(KIND_LABEL, event.kind) ? event.kind : "other";
-  const text = String(event.text || "").trim();
+  const text = String(event.text || "").trim().slice(0, FB_TEXT_MAX);
   if (!text) return fail("EMPTY", "请写下你的反馈");
+  const textSafe = await checkText(text);
+  if (!textSafe.safe) return fail("UNSAFE_CONTENT", "反馈含违规或不当内容，请修改后再提交");
   const u = await ensureUser(openid);
   await db.collection("feedbacks").add({
     data: {

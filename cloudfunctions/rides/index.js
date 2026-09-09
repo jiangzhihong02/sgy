@@ -60,6 +60,7 @@ const HANDLERS = {
   adminClearIdentity: admin.adminClearIdentity,
   adminSeedDone: admin.adminSeedDone,
   adminReset: admin.adminReset,
+  secProbe: admin.secProbe, // 内容安全自检（诊断用；云控制台可无 openid 触发）
   // 用户反馈与建议（仅注册用户；管理员列表/标记）
   feedback: feedback.submit,
   feedbackList: feedback.adminList,
@@ -72,8 +73,8 @@ exports.main = async (event = {}) => {
   const { OPENID } = cloud.getWXContext();
   const handler = HANDLERS[event.action];
   if (!handler) return fail("NO_ACTION", "未知 action");
-  // __sweep 为定时触发（服务端到服务端），不需要用户 openid
-  if (!OPENID && event.action !== "__sweep") return fail("NO_AUTH", "无法识别用户");
+  // __sweep 为定时触发（服务端到服务端）、secProbe 为诊断触发（云控制台测试面板），都不需要用户 openid
+  if (!OPENID && event.action !== "__sweep" && event.action !== "secProbe") return fail("NO_AUTH", "无法识别用户");
   try {
     return await handler(event, OPENID);
   } catch (e) {

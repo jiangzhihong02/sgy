@@ -1,6 +1,7 @@
 // chat.js —— 局内聊天：发消息（文本 / 图片 base64）
 const { MSG_MAX, MSG_IMG_MAX, T_SETTLE, CONFIRM_WINDOW_MS } = require("./rules");
 const { db, ok, fail, ensureUser, ensureRegistered, getMember, getRide } = require("./db");
+const { checkText } = require("./safe"); // 内容安全（文本 msgSecCheck；图片不接机器检测，见 safe.js 注释）
 
 async function sendMessage(event, openid) {
   const ride = await getRide(event.rideId);
@@ -20,6 +21,12 @@ async function sendMessage(event, openid) {
     if (text.length > MSG_IMG_MAX) return fail("TOO_BIG", "图片太大，请换更小或更清晰的截图（群二维码建议裁剪后 ≤300KB）");
     const cnt = await db.collection("messages").where({ rideId: ride._id, openid, type: "image" }).count();
     if (cnt.total >= 1) return fail("IMG_LIMIT", "每人每局最多发 1 张图（建议发群二维码，队友长按保存后扫码加群）");
+  }
+  // 内容安全：文本命中违规直接拦截不入库。图片**不**接机器检测（个人主体云调用不支持 imgSecCheck），
+  // 靠仅同局成员可见 + 每局每人 1 张 + 成员举报/管理员复核兜底（见 safe.js 注释 / UGC 声明）
+  if (!isImage) {
+    const chk = await checkText(text.slice(0, MSG_MAX));
+    if (!chk.safe) return fail("UNSAFE_CONTENT", "这条消息含违规或不当内容，已拦截");
   }
   const user = await ensureUser(openid);
   await db.collection("messages").add({

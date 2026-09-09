@@ -4,6 +4,7 @@
 // ensureUser/applyCreditDelta/randNick/KIND_DELTA/ADMIN_OPENIDS 全部复用 db.js/rules.js，不再自带副本。
 // 契约见 SPEC.md §6。
 const { db, ok, fail, ensureUser, ensureRegistered, isAdmin } = require("./db");
+const { checkText } = require("./safe"); // 内容安全：昵称/姓名入库前拦截违规
 
 const SCHOOL_FIXED = "香港教育大学"; // 一期仅教大
 const RE_STUDENT_ID = /^s\d{7}$/i; // 学号固定格式：小写 s + 7 位纯数字
@@ -27,7 +28,11 @@ const publicUser = (u) => ({
 async function login(event, openid) {
   const u = await ensureUser(openid);
   const patch = { updatedAt: Date.now() };
-  if (typeof event.nickName === "string" && event.nickName.trim()) patch.nickName = event.nickName.trim().slice(0, 20);
+  if (typeof event.nickName === "string" && event.nickName.trim()) {
+    const nickSafe = await checkText(event.nickName.trim());
+    if (!nickSafe.safe) return fail("UNSAFE_CONTENT", "昵称含违规或不当内容，请换一个");
+    patch.nickName = event.nickName.trim().slice(0, 20);
+  }
   if (typeof event.avatarUrl === "string") patch.avatarUrl = event.avatarUrl;
   if (["female", "male"].includes(event.gender) && !u.genderLocked) patch.gender = event.gender; // 自报；锁定性别不可改
   if (Object.keys(patch).length > 1) {
@@ -48,6 +53,8 @@ async function register(event, openid) {
   const u = await ensureUser(openid);
   const nick = String(event.nickName || "").trim().slice(0, 12);
   if (!nick) return fail("BAD_NICK", "请填写昵称");
+  const nickSafe = await checkText(nick);
+  if (!nickSafe.safe) return fail("UNSAFE_CONTENT", "昵称含违规或不当内容，请换一个");
   const patch = { nickName: nick, registered: true, updatedAt: Date.now() };
   // 性别自报；已被系统锁定的性别不可改（genderLocked 见分级纠错）
   if (["female", "male"].includes(event.gender) && !u.genderLocked) patch.gender = event.gender;
@@ -66,6 +73,8 @@ async function identitySave(event, openid) {
   if (!RE_STUDENT_ID.test(studentId)) return fail("BAD_STUDENT_ID", "学号应为小写 s + 7 位数字（如 s1234567）");
   const name = String(event.name || "").trim().slice(0, ID_NAME_MAX);
   if (!name) return fail("BAD_NAME", "请填写真实姓名");
+  const nameSafe = await checkText(name);
+  if (!nameSafe.safe) return fail("UNSAFE_CONTENT", "姓名含违规或不当内容，请核对");
   const major = String(event.major || "").trim().slice(0, ID_MAJOR_MAX);
   const schoolId = { school: SCHOOL_FIXED, studentId, name, major, declaredAt: Date.now() };
   await db.collection("users").where({ openid }).update({ data: { schoolId, updatedAt: Date.now() } });
