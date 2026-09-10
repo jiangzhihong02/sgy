@@ -30,6 +30,7 @@ const {
   findTimeConflict,
 } = require("./db");
 const { checkText } = require("./safe"); // 内容安全：自定义地点/备注入库前拦截违规
+const { withRide } = require("./rideGuard"); // 局内动作公共前置：取局 + 守卫（统一顺序/错误码）+ 信封
 
 // 冲突是否因"同方向往返不足"（区别于单纯出发太近）
 const dirLabel = (d) => (d === "in" ? "返校" : d === "out" ? "离校" : "");
@@ -179,42 +180,45 @@ async function join(event, openid) {
 }
 
 async function leave(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  const now = Date.now();
-  if (!ACTIVE_STATUS.includes(ride.status)) return fail("NOT_LEAVEABLE", "这一局当前状态不可退出");
-  if (now >= ride.boardAt) return fail("GONE", "已到上车时间，按未到处理");
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      member: { msg: "你不在这一局里" },
+      status: { in: ACTIVE_STATUS, msg: "这一局当前状态不可退出" },
+      before: { at: (r) => r.boardAt, msg: "已到上车时间，按未到处理" },
+    },
+    async (ride, me) => {
+      const now = Date.now();
+      const penalty = now >= ride.boardAt - T_FREE_EXIT; // T−30 后退出计爽约
 
-  const me = getMember(ride, openid);
-  if (!me) return fail("NOT_IN", "你不在这一局里");
+      let members = ride.members.filter((m) => m.openid !== openid);
+      let hostOpenid = ride.hostOpenid;
+      let status = ride.status;
+      if (members.length === 0) {
+        status = "cancelled"; // 无人了，局取消
+      } else if (me.role === "host") {
+        // 发起人离开：移交给最早加入者
+        members.sort((a, b) => a.joinedAt - b.joinedAt);
+        members[0].role = "host";
+        hostOpenid = members[0].openid;
+      }
 
-  const penalty = now >= ride.boardAt - T_FREE_EXIT; // T−30 后退出计爽约
+      const patch = {
+        members,
+        memberOpenids: members.map((m) => m.openid),
+        memberCount: members.length,
+        hostOpenid,
+        status,
+        poll: null, // 人数变了，让 sweep 视窗口重新询问
+        updatedAt: now,
+      };
+      await db.collection("rides").doc(ride._id).update({ data: patch });
 
-  let members = ride.members.filter((m) => m.openid !== openid);
-  let hostOpenid = ride.hostOpenid;
-  let status = ride.status;
-  if (members.length === 0) {
-    status = "cancelled"; // 无人了，局取消
-  } else if (me.role === "host") {
-    // 发起人离开：移交给最早加入者
-    members.sort((a, b) => a.joinedAt - b.joinedAt);
-    members[0].role = "host";
-    hostOpenid = members[0].openid;
-  }
-
-  const patch = {
-    members,
-    memberOpenids: members.map((m) => m.openid),
-    memberCount: members.length,
-    hostOpenid,
-    status,
-    poll: null, // 人数变了，让 sweep 视窗口重新询问
-    updatedAt: now,
-  };
-  await db.collection("rides").doc(ride._id).update({ data: patch });
-
-  if (penalty) await applyCreditDelta(openid, CREDIT_LEAVE_NO_SHOW);
-  return ok({ left: true, penalty, status });
+      if (penalty) await applyCreditDelta(openid, CREDIT_LEAVE_NO_SHOW);
+      return ok({ left: true, penalty, status });
+    }
+  );
 }
 
 async function cancel(event, openid) {
@@ -227,44 +231,57 @@ async function cancel(event, openid) {
 }
 
 async function checkin(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  const me = getMember(ride, openid);
-  if (!me) return fail("NOT_IN", "你不在这一局里");
-  if (me.checkedInAt) return ok({ checkedInAt: me.checkedInAt }); // 幂等
-  if (!PARTICIPANT_STATUS.includes(ride.status)) return fail("BAD_STATE", "这一局当前不能签到");
-  if (Date.now() > ride.boardAt + T_CHECKIN_GRACE) return fail("TOO_LATE", "已超过上车时间 10 分钟，不能再签到");
-
-  const members = ride.members.map((m) => (m.openid === openid ? { ...m, checkedInAt: Date.now() } : m));
-  await db.collection("rides").doc(ride._id).update({ data: { members, updatedAt: Date.now() } });
-  return ok({ checkedInAt: Date.now() });
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      member: { msg: "你不在这一局里" },
+      status: { in: PARTICIPANT_STATUS, msg: "这一局当前不能签到" },
+      before: { at: (r) => r.boardAt + T_CHECKIN_GRACE, msg: "已超过上车时间 10 分钟，不能再签到" },
+    },
+    async (ride, me) => {
+      if (me.checkedInAt) return ok({ checkedInAt: me.checkedInAt }); // 幂等
+      const members = ride.members.map((m) => (m.openid === openid ? { ...m, checkedInAt: Date.now() } : m));
+      await db.collection("rides").doc(ride._id).update({ data: { members, updatedAt: Date.now() } });
+      return ok({ checkedInAt: Date.now() });
+    }
+  );
 }
 
 async function respondPoll(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  if (!ride.poll || !ride.poll.active) return fail("NO_POLL", "当前没有进行中的确认");
-  const now = Date.now();
-  if (now >= (ride.poll.dueAt || ride.boardAt - T_POLL_DUE)) return fail("POLL_CLOSED", "确认已截止");
-  const me = getMember(ride, openid);
-  if (!me) return fail("NOT_IN", "你不在这一局里");
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      member: { msg: "你不在这一局里" },
+      before: {
+        // 有进行中的确认才有截止窗口；没有则跳过（本动作特有的 NO_POLL 由 fn 返回）
+        at: (r) => (r.poll && r.poll.active ? r.poll.dueAt || r.boardAt - T_POLL_DUE : null),
+        msg: "确认已截止",
+      },
+    },
+    async (ride) => {
+      if (!ride.poll || !ride.poll.active) return fail("NO_POLL", "当前没有进行中的确认");
+      const now = Date.now();
 
-  const accept = !!event.accept;
-  if (!accept) {
-    // 不认可当前人数：免费退出。轮询截止 T−45 < 自由退出截止 T−30，故必在免费窗口内，
-    // leave 按时间判定不会扣分——无需任何"免罚"标记。
-    return leave({ rideId: ride._id }, openid);
-  }
+      const accept = !!event.accept;
+      if (!accept) {
+        // 不认可当前人数：免费退出。轮询截止 T−45 < 自由退出截止 T−30，故必在免费窗口内，
+        // leave 按时间判定不会扣分——无需任何"免罚"标记。
+        return leave({ rideId: ride._id }, openid);
+      }
 
-  const responses = (ride.poll.responses || []).concat({ openid, accept: true, at: now });
-  const patch = { updatedAt: now };
-  if (responses.length >= ride.memberCount) {
-    patch.poll = { ...ride.poll, active: false, status: "accepted", responses };
-  } else {
-    patch.poll = { ...ride.poll, responses };
-  }
-  await db.collection("rides").doc(ride._id).update({ data: patch });
-  return ok({ poll: patch.poll });
+      const responses = (ride.poll.responses || []).concat({ openid, accept: true, at: now });
+      const patch = { updatedAt: now };
+      if (responses.length >= ride.memberCount) {
+        patch.poll = { ...ride.poll, active: false, status: "accepted", responses };
+      } else {
+        patch.poll = { ...ride.poll, responses };
+      }
+      await db.collection("rides").doc(ride._id).update({ data: patch });
+      return ok({ poll: patch.poll });
+    }
+  );
 }
 
 // 发起人修改局备注
