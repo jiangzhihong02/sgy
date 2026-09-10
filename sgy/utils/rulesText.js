@@ -44,7 +44,8 @@ const FALLBACK = {
       lines: ["不展示微信号、不提供站内私聊。", "按约定时间到上车点的士站集合，凭备注与成员列表互相辨认；车费线下当面对付。"],
     },
   ],
-  limits: { noteMax: 50, urgentMinLead: 900000, urgentWindow: 1800000 }, // urgentMinLead=15min、urgentWindow=30min
+  // 数值与 cloudfunctions/rides/rules.js 的 limits 一一对应；contract.spec.js 会逐键比对防漂移。
+  limits: { noteMax: 50, urgentMinLead: 900000, urgentWindow: 1800000, freeExit: 1800000, joinCloseUrgent: 300000 }, // 15 / 30 / 30 / 5 分钟
 };
 
 let cache = null; // null = 尚未成功拉到云端（用快照兜底）
@@ -72,7 +73,25 @@ const creditFooter = () => payload().creditFooter || "";
 const privacySections = () => payload().privacySections || [];
 const urgentMinLead = () => ((payload().limits || {}).urgentMinLead) || 900000;
 const urgentWindow = () => ((payload().limits || {}).urgentWindow) || 1800000;
+const freeExit = () => ((payload().limits || {}).freeExit) || 1800000;
+const joinCloseUrgent = () => ((payload().limits || {}).joinCloseUrgent) || 300000;
+
+// 毫秒 → "30"（分钟整数字符串）。文案写"出发前 X 分钟"时用它，别再硬编码数字（改了规则不会漏改文案）。
+const minLabel = (ms) => String(Math.round(ms / 60000));
 
 // FALLBACK 一并导出：仅供 tests/contract.spec.js 在 node 里与云端 rides/rules.js 比对（防手抄漂移）。
 // 业务代码请走上面的 timeline/creditTable/... 取值，不要直接读 FALLBACK。
-module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, urgentMinLead, urgentWindow, FALLBACK };
+module.exports = {
+  payload,
+  load,
+  timeline,
+  creditTable,
+  creditFooter,
+  privacySections,
+  urgentMinLead,
+  urgentWindow,
+  freeExit,
+  joinCloseUrgent,
+  minLabel,
+  FALLBACK,
+};

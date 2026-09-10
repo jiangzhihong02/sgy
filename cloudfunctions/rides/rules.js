@@ -118,6 +118,8 @@ function rulePayload() {
       noteMax: NOTE_MAX,
       urgentMinLead: URGENT_MIN_LEAD, // 加急局最早提前量（客户端时间下限）
       urgentWindow: URGENT_WINDOW, // 加急局窗口（客户端判定勾选可用）
+      freeExit: T_FREE_EXIT, // T−30 免费退出线（出发提醒文案要说"出发前 X 分钟前退出"）
+      joinCloseUrgent: T_JOIN_CLOSE_URGENT, // 加急局关局点 T−5（发局弹窗说明用）
     },
   };
 }

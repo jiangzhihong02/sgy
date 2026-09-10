@@ -50,7 +50,7 @@ async function pickMeetCode(from) {
     for (let i = 0; i < 5; i++) {
       const hit = await db
         .collection("rides")
-        .where({ from, code, status: _.in(["recruiting", "locked", "ongoing"]) })
+        .where({ from, code, status: _.in(PARTICIPANT_STATUS) })
         .count();
       if (hit.total === 0) return code;
       code = randMeetCode();

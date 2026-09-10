@@ -5,6 +5,7 @@
 // 两重去重：① 查询本身 10 分钟 TTL（避免每次切 Tab 都打云函数）；② 每局只弹一次。
 const api = require("./api");
 const { dayLabel } = require("./domain");
+const rulesText = require("./rulesText"); // 文案里的"出发前 X 分钟"取自云端 limits，不硬编码
 
 const KEY_CHECK_AT = "departCheckAt"; // 上次查询时刻
 const KEY_SEEN = "departReminded_"; // 按局记录：departReminded_<rideId>
@@ -41,7 +42,7 @@ async function maybePromptOnce() {
     title: "快到出发时间了",
     content:
       `${dayLabel(first.boardAt)}　${first.routeLabel}\n` +
-      "到场前，这局的人数是队友唯一能看到的信号：请按时到达；若赶不上，请在出发前 30 分钟前退出，好让队友按真实人数出发。",
+      `到场前，这局的人数是队友唯一能看到的信号：请按时到达；若赶不上，请在出发前 ${rulesText.minLabel(rulesText.freeExit())} 分钟前退出，好让队友按真实人数出发。`,
     confirmText: "知道了",
     showCancel: false,
   });

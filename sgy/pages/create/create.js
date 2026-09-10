@@ -4,7 +4,7 @@ const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { DIRECTIONS, fmtDate, fmtTime, dayLabel, dateTimeToMs } = require("../../utils/domain.js");
 const rulesText = require("../../utils/rulesText.js");
-const { judgeTime } = require("../../utils/createGate.js"); // 时间/加急判定（纯函数，可单测；见 tests/createGate.spec.js）
+const { judgeTime, canToggleUrgent } = require("../../utils/createGate.js"); // 时间/加急判定（纯函数，可单测；见 tests/createGate.spec.js）
 
 // 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
 const HOURS = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
@@ -192,7 +192,8 @@ Page({
       wx.showModal({
         title: "要按加急局发起吗？",
         content:
-          "这个时间距出发不到 30 分钟。30 分钟内出发的局需按「加急局」发起：关局放宽到出发前 5 分钟；凑不齐 2 人自动作废，不计爽约、不扣信用分。",
+          `这个时间距出发不到 ${rulesText.minLabel(rulesText.urgentWindow())} 分钟。${rulesText.minLabel(rulesText.urgentWindow())} 分钟内出发的局需按「加急局」发起：` +
+          `关局放宽到出发前 ${rulesText.minLabel(rulesText.joinCloseUrgent())} 分钟；凑不齐 2 人自动作废，不计爽约、不扣信用分。`,
         confirmText: "按加急局发起",
         cancelText: "换个时间",
         success: (r) => {
@@ -257,13 +258,15 @@ Page({
       return;
     }
     const lead = this._leadOf(this.data.date, this.data.time);
-    const nearEnough = lead >= rulesText.urgentMinLead() && lead <= rulesText.urgentWindow();
+    const nearEnough = canToggleUrgent(lead, this._gateCfg());
     this.setData({ urgent: true });
     wx.showModal({
       title: "加急局提醒",
       content: nearEnough
-        ? "加急局 30 分钟内出发，可能没人响应——请做好心理准备。"
-        : "加急局仅限 30 分钟内出发：请把上车时间调到 30 分钟以内（最早提前 15 分钟）。加急局可能没人响应——请做好心理准备。",
+        ? `加急局 ${rulesText.minLabel(rulesText.urgentWindow())} 分钟内出发，可能没人响应——请做好心理准备。`
+        : `加急局仅限 ${rulesText.minLabel(rulesText.urgentWindow())} 分钟内出发：请把上车时间调到 ${rulesText.minLabel(
+            rulesText.urgentWindow()
+          )} 分钟以内（最早提前 ${rulesText.minLabel(rulesText.urgentMinLead())} 分钟）。加急局可能没人响应——请做好心理准备。`,
       confirmText: "知道",
       showCancel: false,
     });
@@ -283,7 +286,7 @@ Page({
     if (this.data.urgent && !this._urgentConfirmed) {
       wx.showModal({
         title: "加急局 · 发起前确认",
-        content: "加急局 30 分钟内出发，发起后不能取消。若凑不齐 2 人会自动作废（不计爽约、不扣信用分）。确认发起？",
+        content: `加急局 ${rulesText.minLabel(rulesText.urgentWindow())} 分钟内出发，发起后不能取消。若凑不齐 2 人会自动作废（不计爽约、不扣信用分）。确认发起？`,
         confirmText: "确认发起",
         cancelText: "再想想",
         success: (r) => {
