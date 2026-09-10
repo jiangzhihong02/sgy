@@ -196,7 +196,7 @@ ongoing
 - **管理员判定**：唯一来源 `cloudfunctions/rides/db.js` 的 `ADMIN_OPENIDS`（内测期作者）。改名单改那一处即可。
 
 ### `routeInit`（一次性初始化，手动调用一次）
-- 幂等创建集合（users/routes/rides/reports；已存在则跳过）。
+- 幂等创建集合（users/routes/rides/reports/invites/blocks/feedbacks；已存在则跳过。`messages` 随站内聊天下线，2026-09-10，见 ADR-0017，不再创建）。
 - 写入一期 7 条 routes（已存在按 routeId 跳过）。
 - 出每个集合的结果。
 
@@ -211,6 +211,6 @@ ongoing
 ## 7. 索引与部署步骤（写进 README）
 1. 开发者工具开通云开发 → 建环境 → 拿环境 ID 填 `sgy/app.js` 的 `env`。
 2. 右键 `cloudfunctions/routeInit` → 「上传并部署：云端安装依赖」，在云开发控制台或临时页调用一次初始化。
-3. 上传 `rides` / `user` / `rideSweep`（rideSweep 带 config.json 触发器）。
+3. 上传 `rides` / `rideSweep`（`user` 云函数已并入 `rides`，见 ADR-0012；`rideSweep` 带 config.json 触发器）。
 4. 云开发控制台给 rides/reports/users 按 §0 建索引。
 5. 作者 openid 填进 `rides/db.js` 顶部的 `ADMIN_OPENIDS`。
