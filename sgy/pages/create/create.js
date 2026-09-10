@@ -4,6 +4,7 @@ const api = require("../../utils/api.js");
 const routeSvc = require("../../utils/routes.js");
 const { DIRECTIONS, fmtDate, fmtTime, dayLabel, dateTimeToMs } = require("../../utils/domain.js");
 const rulesText = require("../../utils/rulesText.js");
+const { judgeTime } = require("../../utils/createGate.js"); // 时间/加急判定（纯函数，可单测；见 tests/createGate.spec.js）
 
 // 24 小时制时间选择：小时 00–23 + 每 5 分钟一档（原生 time 在 iOS 跟随系统 12/24，无法强制，故自选）
 const HOURS = Array.from({ length: 24 }, (_, i) => (i < 10 ? "0" + i : "" + i));
@@ -169,20 +170,36 @@ Page({
     return dateTimeToMs(date, time) - Date.now();
   },
 
-  // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）；加急局下限 15 分钟、窗口 30 分钟
+  // 判定的三个阈值（加急窗口云端为准 + 本地兜底；普通局下限＝NORMAL_MIN_LEAD）
+  _gateCfg() {
+    return { normalMin: NORMAL_MIN_LEAD, urgentMin: rulesText.urgentMinLead(), urgentWindow: rulesText.urgentWindow() };
+  },
+
+  // 24 小时制自选时间（小时列 00–23 / 分钟列 每 5 分钟）。
+  // 判定交给 createGate.judgeTime：选到 15–30 分钟 → 可用，但**必须按加急局发起**（弹窗问一句）。
   onPickTimeM(e) {
     const v = e.detail.value || [];
     const hh = HOURS[v[0]] || "00";
     const mm = MINS[v[1]] || "00";
     const t = `${hh}:${mm}`;
     const lead = this._leadOf(this.data.date, t);
-    const minLead = this.data.urgent ? rulesText.urgentMinLead() : NORMAL_MIN_LEAD;
-    if (lead < minLead) {
-      wx.showToast({ title: this.data.urgent ? "加急局最早提前 15 分钟发起" : "出发时间不能早于当前 31 分钟", icon: "none" });
+    const verdict = judgeTime(lead, this.data.urgent, this._gateCfg());
+    if (!verdict.ok) {
+      wx.showToast({ title: verdict.msg, icon: "none" });
       return;
     }
-    if (this.data.urgent && lead > rulesText.urgentWindow()) {
-      wx.showToast({ title: "加急仅限 30 分钟内出发", icon: "none" });
+    if (verdict.suggestUrgent) {
+      wx.showModal({
+        title: "要按加急局发起吗？",
+        content:
+          "这个时间距出发不到 30 分钟。30 分钟内出发的局需按「加急局」发起：关局放宽到出发前 5 分钟；凑不齐 2 人自动作废，不计爽约、不扣信用分。",
+        confirmText: "按加急局发起",
+        cancelText: "换个时间",
+        success: (r) => {
+          if (r.confirm) this.setData({ time: t, timeH: v[0], timeM: v[1], urgent: true });
+          // 选"换个时间"：不设该时间，保持原值
+        },
+      });
       return;
     }
     this.setData({ time: t, timeH: v[0], timeM: v[1] });
@@ -232,21 +249,21 @@ Page({
     this.setData({ capacity: Number(e.currentTarget.dataset.cap) });
   },
 
-  // 加急局开关：仅当所选时间在 15–30 分钟内可用；勾选时提醒"可能没人响应"
+  // 加急局开关：**不要求时间已临近**——否则与"选时间"互相等待，加急永远发不出去（曾有的 bug）。
+  // 勾上后，时间下限自动放宽到 15 分钟；若当前时间还在 30 分钟之外，提示去改成 30 分钟内的。
   onToggleUrgent() {
     if (this.data.urgent) {
       this.setData({ urgent: false });
       return;
     }
     const lead = this._leadOf(this.data.date, this.data.time);
-    if (lead > rulesText.urgentWindow() || lead < rulesText.urgentMinLead()) {
-      wx.showToast({ title: "先把上车时间调到 15–30 分钟内，再勾加急", icon: "none" });
-      return;
-    }
+    const nearEnough = lead >= rulesText.urgentMinLead() && lead <= rulesText.urgentWindow();
     this.setData({ urgent: true });
     wx.showModal({
       title: "加急局提醒",
-      content: "加急局 30 分钟内出发，可能没人响应——请做好心理准备。",
+      content: nearEnough
+        ? "加急局 30 分钟内出发，可能没人响应——请做好心理准备。"
+        : "加急局仅限 30 分钟内出发：请把上车时间调到 30 分钟以内（最早提前 15 分钟）。加急局可能没人响应——请做好心理准备。",
       confirmText: "知道",
       showCancel: false,
     });
