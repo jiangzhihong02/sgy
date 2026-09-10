@@ -11,6 +11,7 @@ const T_MIN_GAP = 60 * MIN; // 同人两个未出发局须相隔 ≥1h（任何�
 const T_SAME_DIR = 120 * MIN; // 同方向（返校×返校 / 离校×离校）须相隔 ≥2h（往返的士约 1h + 缓冲）
 const T_POLL_ASK = 60 * MIN; // T−60 人数轮询发起
 const T_POLL_DUE = 45 * MIN; // T−45 轮询截止（未回复默认接受）
+const T_DEPART_REMIND = 60 * MIN; // 出发提醒窗口上界：距出发 ≤60 分钟（下界＝T_FREE_EXIT）时提醒"赶不上请及时退出"（见 DESIGN）
 const T_CHECKIN_GRACE = 10 * MIN; // T+10 停止"我到了"签到
 const T_SETTLE = 45 * MIN; // 上车后 45 分钟自动结算（深港单程最慢约 45 分钟，行程结束即结算、尽早进入补签确认窗口；此前曾为 2h→1h，2026-09-08 定稿 45min）
 const CONFIRM_WINDOW_MS = 48 * 3600 * 1000; // 结算后"补签到确认"窗口：到点没签到的成员 48h 内可弹窗确认是否上车（见 CONTEXT 签到）
@@ -129,6 +130,7 @@ module.exports = {
   T_SAME_DIR,
   T_POLL_ASK,
   T_POLL_DUE,
+  T_DEPART_REMIND,
   T_CHECKIN_GRACE,
   T_SETTLE,
   CONFIRM_WINDOW_MS,

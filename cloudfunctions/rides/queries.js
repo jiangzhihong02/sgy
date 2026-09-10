@@ -1,5 +1,5 @@
 // queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 线路目录 / 规则面板
-const { T_FREE_EXIT, ACTIVE_STATUS, canCheckin, rulePayload, joinCloseMs } = require("./rules");
+const { T_FREE_EXIT, T_DEPART_REMIND, ACTIVE_STATUS, canCheckin, rulePayload, joinCloseMs } = require("./rules");
 const { db, _, ok, fail, getRide, getMember, blockersOf, advanceMany } = require("./db");
 
 const view = (r) => ({
@@ -97,4 +97,24 @@ async function getRules() {
   return ok(rulePayload());
 }
 
-module.exports = { list, my, detail, routeList, getRules };
+// 出发前提醒：我还有"快到点、又没签到"的未出发局吗？
+// 窗口＝距出发 (T_FREE_EXIT, T_DEPART_REMIND]——即"还来得及免费退出"的那一段，此刻提醒才行动得上。
+// 客户端打开小程序时查一次，弹「请按时到达；赶不上请及时退出」（每局一次），见 DESIGN。
+async function departPending(event, openid) {
+  const now = Date.now();
+  const res = await db.collection("rides").where({ memberOpenids: openid, status: _.in(ACTIVE_STATUS) }).limit(20).get();
+  const adv = await advanceMany(res.data || []); // 读时自愈：先把到期局推进掉
+  const list = [];
+  for (const r of adv) {
+    if (!ACTIVE_STATUS.includes(r.status)) continue;
+    const left = r.boardAt - now;
+    if (left <= T_FREE_EXIT || left > T_DEPART_REMIND) continue; // 只在能免费退出的窗口里提醒
+    const me = getMember(r, openid);
+    if (!me || me.checkedInAt) continue; // 已签到的不用提醒
+    list.push({ rideId: r._id, routeLabel: `${r.from || ""} → ${r.to || ""}`, boardAt: r.boardAt });
+  }
+  list.sort((a, b) => a.boardAt - b.boardAt);
+  return ok({ list });
+}
+
+module.exports = { list, my, detail, routeList, getRules, departPending };

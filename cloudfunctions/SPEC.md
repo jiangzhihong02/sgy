@@ -172,6 +172,7 @@ ongoing
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
 - `checkin`：入 `{ rideId }`。规则见 §3.6。
 - `confirmPending` / `confirmRide`：补签到确认。`confirmPending` 出我待确认的已完成局（窗口内、未处理）；`confirmRide` 入 `{ rideId, rode: true|false }`，见 §4 补签到确认。
+- `departPending`：出发前提醒。出"快到点又没签到"的未出发局（窗口＝距出发 `(T_FREE_EXIT, T_DEPART_REMIND]`，即还来得及免费退出的那一段）。客户端打开小程序时查一次并弹「请按时到达；赶不上请及时退出」（每局一次）。
 - `respondPoll`：入 `{ rideId, accept }`。见 §5。
 - `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
 - `memberInfo` / `block`：成员资料（含信用/是否已标记/`schoolVerified` 仅绿标）与"不与其乘车"标记。

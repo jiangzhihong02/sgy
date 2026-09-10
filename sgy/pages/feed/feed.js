@@ -5,6 +5,7 @@ const routeSvc = require("../../utils/routes.js");
 const { cardOf, avatarSlots } = require("../../utils/rideView.js");
 const autopoll = require("../../utils/autopoll.js");
 const confirmRide = require("../../utils/confirmRide.js");
+const departReminder = require("../../utils/departReminder.js");
 
 const DIR_OPTIONS = [
   { id: "in", label: "返校" },
@@ -76,6 +77,7 @@ Page({
     if (this.data.loaded) this.refresh();
     this._feedPoll.start();
     confirmRide.maybePromptOnce(); // 补签到确认（结算后未签到者 48h 内被问）
+    departReminder.maybePromptOnce(); // 出发前提醒（快到点又没签到：请按时到、赶不上及时退）
   },
   onHide() {
     this._feedPoll.stop();
