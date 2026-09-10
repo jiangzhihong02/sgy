@@ -10,6 +10,10 @@
 //
 // 与服务端 rides/rules.js 同口径：普通局 >30min 发起；加急局 15–30 分钟内出发。
 // 三个阈值由调用方注入（依赖注入，不在模块内造字面量），便于测试固定取值。
+// 同理，**给用户看的 msg 也从 cfg 算**——否则注入了阈值、文案里却写死 15/30/31，
+// 改了规则文案就开始说谎（与 pages 侧的 rulesText.minLabel 同一条纪律）。
+
+const minOf = (ms) => Math.round(ms / 60000);
 
 /**
  * 判定候选出发时间能否使用。
@@ -23,14 +27,14 @@
  */
 function judgeTime(lead, urgent, cfg) {
   if (urgent) {
-    if (lead < cfg.urgentMin) return { ok: false, msg: "加急局最早提前 15 分钟发起" };
-    if (lead > cfg.urgentWindow) return { ok: false, msg: "加急仅限 30 分钟内出发" };
+    if (lead < cfg.urgentMin) return { ok: false, msg: `加急局最早提前 ${minOf(cfg.urgentMin)} 分钟发起` };
+    if (lead > cfg.urgentWindow) return { ok: false, msg: `加急仅限 ${minOf(cfg.urgentWindow)} 分钟内出发` };
     return { ok: true };
   }
-  if (lead < cfg.urgentMin) return { ok: false, msg: "出发时间最早提前 15 分钟" };
+  if (lead < cfg.urgentMin) return { ok: false, msg: `出发时间最早提前 ${minOf(cfg.urgentMin)} 分钟` };
   // 15–30 分钟：可发起，但只能作为加急局 —— 这里返回"建议加急"而不是拒绝（修复点）
   if (lead <= cfg.urgentWindow) return { ok: true, suggestUrgent: true };
-  if (lead < cfg.normalMin) return { ok: false, msg: "出发时间不能早于当前 31 分钟" };
+  if (lead < cfg.normalMin) return { ok: false, msg: `出发时间不能早于当前 ${minOf(cfg.normalMin)} 分钟` };
   return { ok: true };
 }
 

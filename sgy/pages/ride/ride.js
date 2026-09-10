@@ -23,6 +23,7 @@ Page({
     pollAccepted: false,
     showRules: false,
     rules: rulesText.timeline(), // 规则面板：云端单一来源，本地快照兜底（onLoad 再刷新）
+    lim: rulesText.limitLabels(), // 文案里的分钟数（出发前 X 分钟前退出…），一律由此取，勿写死
     isDone: false, // 已结束/已取消：操作按钮应灰置不可交互
     editingNote: false,
     noteDraft: "",
@@ -33,7 +34,7 @@ Page({
     this._rideId = options && options.id;
     this._openid = "";
     // 规则面板以云端为准：拉回后刷新（未拉到用快照）
-    rulesText.load().then(() => this.setData({ rules: rulesText.timeline() }));
+    rulesText.load().then(() => this.setData({ rules: rulesText.timeline(), lim: rulesText.limitLabels() }));
     // 详情页常驻时自动刷新：新人入队/人数变化/备注修改不用退出重进（加载到内容且无错误才刷）
     this._ridePoll = autopoll({ intervalMs: 6000, idleWhile: () => !!this.data.ride && !this.data.errorMsg, tick: () => this.refresh() });
     if (this._rideId) this.refresh();
@@ -140,7 +141,7 @@ Page({
     if (gate === "urgent" && !this._urgentJoinConfirmed) {
       confirm({
         title: "加入加急局？",
-        content: "加急局出发在即（30 分钟内）：加入后中途退出计爽约、扣信用分。确认加入？",
+        content: `加急局出发在即（${this.data.lim.urgentWindow} 分钟内）：加入后中途退出计爽约、扣信用分。确认加入？`,
         confirmText: "确认加入",
         cancelText: "再想想",
         onOk: () => {
@@ -198,10 +199,10 @@ Page({
 
   onLeave() {
     const r = this.data.ride;
-    const late = r && Date.now() >= r.boardAt - 30 * 60 * 1000;
+    const late = r && Date.now() >= r.boardAt - rulesText.freeExit(); // 同一条线：与 departReminder/文案同源，勿写死
     confirm({
       title: "退出这一局？",
-      content: late ? "距上车不足 30 分钟，退出会计爽约（信用 −20）。确定退出？" : "退出后如想再参加需重新加入。",
+      content: late ? `距上车不足 ${this.data.lim.freeExit} 分钟，退出会计爽约（信用 −20）。确定退出？` : "退出后如想再参加需重新加入。",
       onOk: () => this.run("leave", {}, "已退出"),
     });
   },

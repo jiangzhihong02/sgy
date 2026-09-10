@@ -75,6 +75,7 @@ Page({
     note: "",
     showRulesTip: false, // 成立规则表就地展开
     rules: rulesText.timeline(), // 成立规则表（云端单一来源，快照兜底；onLoad 再刷新）
+    lim: rulesText.limitLabels(), // 文案里的分钟数（加急 X 分钟内…），一律由此取，勿写死
     submitting: false,
     err: null, // { head, sub, rows:[{label,text}] }
   },
@@ -97,7 +98,7 @@ Page({
       timeH: hi,
       timeM: mi,
     });
-    rulesText.load().then(() => this.setData({ rules: rulesText.timeline() })); // 成立规则表以云端为准
+    rulesText.load().then(() => this.setData({ rules: rulesText.timeline(), lim: rulesText.limitLabels() })); // 成立规则表/分钟数文案以云端为准
     this.applyDirection("in", true);
     this.refreshRoutes();
   },

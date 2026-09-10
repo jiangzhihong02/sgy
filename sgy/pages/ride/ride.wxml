@@ -102,7 +102,7 @@
     </view>
 
     <!-- 到场前提醒（成员可见）：到场前人数是队友唯一能看到的信号 -->
-    <view wx:if="{{isMember && !isDone}}" class="depart-tip">到场前，这局的人数是队友唯一能看到的信号：请按时到达；若赶不上，请在出发前 30 分钟前退出。</view>
+    <view wx:if="{{isMember && !isDone}}" class="depart-tip">到场前，这局的人数是队友唯一能看到的信号：请按时到达；若赶不上，请在出发前 {{lim.freeExit}} 分钟前退出。</view>
 
     <!-- 操作区 -->
     <view class="card no-margin actions">

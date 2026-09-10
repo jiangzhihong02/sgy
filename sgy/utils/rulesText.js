@@ -79,6 +79,17 @@ const joinCloseUrgent = () => ((payload().limits || {}).joinCloseUrgent) || 3000
 // 毫秒 → "30"（分钟整数字符串）。文案写"出发前 X 分钟"时用它，别再硬编码数字（改了规则不会漏改文案）。
 const minLabel = (ms) => String(Math.round(ms / 60000));
 
+/** 页面文案里"出发前 / 最早提前 X 分钟"要用的分钟标签，一次给全（全由 limits 算出）。
+ *  页面把它放进 data.lim，WXML 直接 {{lim.freeExit}}，改云端规则文案自动跟着变。 */
+function limitLabels() {
+  return {
+    freeExit: minLabel(freeExit()),
+    urgentMinLead: minLabel(urgentMinLead()),
+    urgentWindow: minLabel(urgentWindow()),
+    joinCloseUrgent: minLabel(joinCloseUrgent()),
+  };
+}
+
 // FALLBACK 一并导出：仅供 tests/contract.spec.js 在 node 里与云端 rides/rules.js 比对（防手抄漂移）。
 // 业务代码请走上面的 timeline/creditTable/... 取值，不要直接读 FALLBACK。
 module.exports = {
@@ -93,5 +104,6 @@ module.exports = {
   freeExit,
   joinCloseUrgent,
   minLabel,
+  limitLabels,
   FALLBACK,
 };

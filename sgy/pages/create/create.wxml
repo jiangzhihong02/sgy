@@ -93,18 +93,18 @@
     <view class="field">
       <view class="field-label">加急</view>
       <view class="flex-1">
-        <view class="chip cap-chip {{urgent ? 'active' : ''}}" bindtap="onToggleUrgent">🔥 加急局（30 分钟内出发）</view>
-        <view class="small muted">{{urgent ? '关局放宽到出发前 5 分钟；凑不齐自动作废，不扣信用分' : '最早提前 15 分钟；凑不齐自动作废，不扣发起人分'}}</view>
+        <view class="chip cap-chip {{urgent ? 'active' : ''}}" bindtap="onToggleUrgent">🔥 加急局（{{lim.urgentWindow}} 分钟内出发）</view>
+        <view class="small muted">{{urgent ? '关局放宽到出发前 ' + lim.joinCloseUrgent + ' 分钟；凑不齐自动作废，不扣信用分' : '最早提前 ' + lim.urgentMinLead + ' 分钟；凑不齐自动作废，不扣发起人分'}}</view>
       </view>
     </view>
     <view class="field">
       <view class="field-label">备注</view>
-      <input class="flex-1" placeholder="例：已有 3 人同行、再招 1 位拼满 / 的士站最右边集合" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
+      <input class="flex-1" placeholder="例：已有 3 人同行、再招 1 位拼满 / 的士站最右边等" value="{{note}}" bindinput="onNoteInput" maxlength="50" />
     </view>
   </view>
 
   <view class="rules-tip small" bindtap="onPreviewRule">
-    <view class="muted">ℹ️ 一局的成立规则：临近出发会发起人数确认 · 出发前 30 分钟前可自由退出 · 出发前 10 分钟停止加入，≥2 人即成局</view>
+    <view class="muted">ℹ️ 一局的成立规则：临近出发会发起人数确认 · 出发前 {{lim.freeExit}} 分钟前可自由退出 · 出发前 10 分钟停止加入，≥2 人即成局</view>
     <view class="link">{{showRulesTip ? '收起规则' : '点这里查看规则'}} ›</view>
   </view>
 
