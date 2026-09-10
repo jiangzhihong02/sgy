@@ -84,7 +84,11 @@ Page({
     // 默认时间：当前+40 分钟，向上取整到 5 分钟（避开已过去时刻）
     const rounded = Math.ceil((now + 40 * 60000) / 300000) * 300000;
     const t = fmtTime(rounded);
-    const [hi, mi] = timeIndexes(t);
+    // 取下标而不用数组解构：增强编译(enhance)会为数组解构注入 @babel/runtime helper，
+    // 而本客户端无 npm 依赖（miniprogram_npm 不存在）→ 页面报 "module ... is not defined"。
+    const hm = timeIndexes(t);
+    const hi = hm[0];
+    const mi = hm[1];
     this.setData({
       date: this._today,
       time: t,
@@ -196,9 +200,9 @@ Page({
       patch.timeStart = "";
     }
     const final = patch.time || this.data.time;
-    const [hi, mi] = timeIndexes(final);
-    patch.timeH = hi;
-    patch.timeM = mi;
+    const hm = timeIndexes(final); // 同上：取下标，避免增强编译注入 @babel/runtime helper
+    patch.timeH = hm[0];
+    patch.timeM = hm[1];
     this.setData(patch);
     this._maybeSuggestLeadTime();
   },

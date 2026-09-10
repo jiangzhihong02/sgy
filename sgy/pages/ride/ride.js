@@ -59,10 +59,14 @@ Page({
   },
 
   async refresh() {
-    const [meRes, res] = await Promise.all([
+    // 取下标而不用数组解构：增强编译(enhance)会为数组解构注入 @babel/runtime helper，
+    // 而本客户端无 npm 依赖（miniprogram_npm 不存在）→ 页面报 "module ... is not defined"。
+    const results = await Promise.all([
       api.call("me"),
       api.call("detail", { rideId: this._rideId }),
     ]);
+    const meRes = results[0];
+    const res = results[1];
     if (meRes.ok) this._openid = meRes.data.user.openid;
     if (!res.ok) {
       this.setData({ loaded: true, errorMsg: res.msg || "加载失败" });
