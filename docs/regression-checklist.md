@@ -97,3 +97,11 @@
 ## 7. 收尾
 - [ ] 真机控制台/云开发日志无 `EXCEPTION`、无 "未知 action"、无大段堆栈。
 - [ ] 发现异常 → 记下账号、操作、期望 vs 实际、控制台**报错头部前几行**（错误类型 + `at pages/…` 首帧），交给 Claude。
+
+## 9. 编译期约定（2026-09-10，防整页白屏）
+- [ ] **客户端 JS 禁用 数组解构 `const [a,b]=…` / 数组展开 `[...x]` / `for…of`**。
+  - 原因：客户端**无 npm 产物**（无 `package.json`/`node_modules`/`miniprogram_npm`），而 `project.config.json` 开着 `enhance`（增强编译）。上述语法会被 Babel 编译成 `require('@babel/runtime/helpers/…')` → 模块不存在 → **整页打不开**，报 `module '@babel/runtime/helpers/arrayWithHoles.js' is not defined`，并连带 `Component is not found "wx://not-found"`。
+  - 自查（秒级、可自动）：全 `sgy/` 搜上列语法，必须 **0 匹配**。
+  - 2026-09-10 已按此修掉 `ride.js` / `create.js` 的 3 处解构（见 commit `2d9b2ef`）。
+  - 替代方案（未采用）：关掉 `enhance`（一行配置），但需真机全量回归。
+- [ ] 每次开页面若报 `Component is not found "wx://not-found"`，**先怀疑页面模块加载失败**（多为上面的 helper 注入），而不是组件本身（`member-sheet.json` 的 `component: true` 等配置通常是好的）。
