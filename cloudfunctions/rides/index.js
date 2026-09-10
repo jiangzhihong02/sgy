@@ -26,8 +26,8 @@ const HANDLERS = {
   updateNote: lifecycle.updateNote,
   confirmPending: lifecycle.confirmPending, // 补签到确认：待确认列表
   confirmRide: lifecycle.confirmRide, // 补签到确认：上车了(+1) / 没上(−20)
-  departPending: queries.departPending, // 出发前提醒：快到点又没签到的局（客户端打开时弹一次）
   // 查询
+  departPending: queries.departPending, // 出发前提醒：快到点又没签到的局（客户端打开时弹一次）
   list: queries.list,
   my: queries.my,
   detail: queries.detail,

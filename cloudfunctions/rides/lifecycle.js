@@ -263,12 +263,14 @@ async function checkin(event, openid) {
     event.rideId,
     openid,
     {
+      // 幂等：已签直接返回成功，且**先于**状态/窗口守卫（见 rideGuard spec.pre）。
+      // 与 rules.canCheckin 同口径（它也最先判 checkedInAt），两处不再分叉。
+      pre: (ride, me) => (me && me.checkedInAt ? ok({ checkedInAt: me.checkedInAt }) : null),
       member: { msg: "你不在这一局里" },
       status: { in: PARTICIPANT_STATUS, msg: "这一局当前不能签到" },
       before: { at: (r) => r.boardAt + T_CHECKIN_GRACE, msg: "已超过上车时间 10 分钟，不能再签到" },
     },
-    async (ride, me) => {
-      if (me.checkedInAt) return ok({ checkedInAt: me.checkedInAt }); // 幂等
+    async (ride) => {
       const members = ride.members.map((m) => (m.openid === openid ? { ...m, checkedInAt: Date.now() } : m));
       await db.collection("rides").doc(ride._id).update({ data: { members, updatedAt: Date.now() } });
       return ok({ checkedInAt: Date.now() });
@@ -319,7 +321,7 @@ async function updateNote(event, openid) {
     openid,
     {
       host: { msg: "只有发起人能修改备注" },
-      status: { in: ["recruiting", "locked"], msg: "该局已结束，不能改备注" },
+      status: { in: ACTIVE_STATUS, msg: "该局已结束，不能改备注" },
     },
     async (ride) => {
       const note = String(event.note || "").trim().slice(0, NOTE_MAX);
