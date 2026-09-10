@@ -18,6 +18,9 @@ const {
 } = require("./rules");
 const { planAdvance } = require("./advance"); // 状态推进的纯判定（无 IO，可单测；时间常量由其自理）
 
+// 响应信封。**故意留在这里**、不抽独立模块：纯模块（rules / advance / guard）一律"返回值"，
+// 信封只在 IO 边缘产生——不存在"纯模块需要信封却用不了"的场景（2026-09-10 架构评审 C3 复核确认；
+// 全云函数内除本处外无人手搓 ok/fail）。
 const ok = (data) => ({ ok: true, data });
 const fail = (err, msg, data = null) => ({ ok: false, err, msg, data });
 
