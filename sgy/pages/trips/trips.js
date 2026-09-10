@@ -2,7 +2,6 @@
 const api = require("../../utils/api.js");
 const { cardOf } = require("../../utils/rideView.js");
 const confirmRide = require("../../utils/confirmRide.js");
-const departReminder = require("../../utils/departReminder.js");
 
 Page({
   data: {
@@ -23,7 +22,7 @@ Page({
     // 从详情返回后数据可能有变（加入/退出/状态推进）
     if (this.data.loaded) this.refresh();
     confirmRide.maybePromptOnce(); // 补签到确认（结算后未签到者 48h 内被问）
-    departReminder.maybePromptOnce(); // 出发前提醒（快到点又没签到：请按时到、赶不上及时退）
+    // 出发前提醒已上移到 app.onShow（DESIGN：打开小程序时弹一次），此处不再重复挂
   },
 
   onPullDownRefresh() {

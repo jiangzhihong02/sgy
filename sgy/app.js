@@ -1,4 +1,6 @@
 // app.js
+const departReminder = require("./utils/departReminder.js");
+
 App({
   onLaunch() {
     this.globalData = {
@@ -40,5 +42,12 @@ App({
         },
       });
     }, 500);
+  },
+
+  // 出发前提醒（DESIGN「通知策略」：打开小程序时主动弹一次）——挂 app 级，任何入口都覆盖得到
+  //（从分享卡片直达详情、直接落到「我的」等；原先只挂在 feed/trips 的 onShow 里，这些入口会漏）。
+  // 去重由 departReminder 自己负责（查询 10 分钟 TTL + 每局只弹一次），故重复触发无害。
+  onShow() {
+    departReminder.maybePromptOnce();
   },
 });
