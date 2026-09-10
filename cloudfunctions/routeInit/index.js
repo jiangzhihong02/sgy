@@ -3,21 +3,10 @@
 const cloud = require("wx-server-sdk");
 cloud.init({ env: cloud.DYNAMIC_CURRENT_ENV });
 const db = cloud.database();
+const { ROUTES } = require("./catalog"); // 一期 7 条线路（纯数据；与客户端快照的一致性由 tests/contract.spec.js 守）
 
 // 一期 7 个集合（messages 于 2026-09-10 随站内聊天下线，见 ADR-0017，不再新建）
 const COLLECTIONS = ["users", "routes", "rides", "reports", "invites", "blocks", "feedbacks"];
-
-// 一期 7 条线路（见 docs/DESIGN.md「线路目录」，均为香港侧上车/下车）
-// 命名约定：口岸保留"的士站"；大埔墟本身就是"站"，不加"的士站"。
-const ROUTES = [
-  { routeId: "in-liantang", directionId: "in", from: "莲塘口岸（香园围）的士站", to: "香港教育大学" },
-  { routeId: "in-futian", directionId: "in", from: "福田口岸（落马洲）的士站", to: "香港教育大学" },
-  { routeId: "in-szbay", directionId: "in", from: "深圳湾口岸的士站", to: "香港教育大学" },
-  { routeId: "in-taimarket", directionId: "in", from: "大埔墟站（东铁线）", to: "香港教育大学" },
-  { routeId: "out-liantang", directionId: "out", from: "香港教育大学", to: "莲塘口岸（香园围）香港侧" },
-  { routeId: "out-futian", directionId: "out", from: "香港教育大学", to: "福田口岸（落马洲）香港侧" },
-  { routeId: "out-szbay", directionId: "out", from: "香港教育大学", to: "深圳湾口岸香港侧" },
-];
 
 async function ensureCollection(name) {
   try {

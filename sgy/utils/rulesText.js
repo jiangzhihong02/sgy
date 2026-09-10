@@ -73,4 +73,6 @@ const privacySections = () => payload().privacySections || [];
 const urgentMinLead = () => ((payload().limits || {}).urgentMinLead) || 900000;
 const urgentWindow = () => ((payload().limits || {}).urgentWindow) || 1800000;
 
-module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, urgentMinLead, urgentWindow };
+// FALLBACK 一并导出：仅供 tests/contract.spec.js 在 node 里与云端 rides/rules.js 比对（防手抄漂移）。
+// 业务代码请走上面的 timeline/creditTable/... 取值，不要直接读 FALLBACK。
+module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, urgentMinLead, urgentWindow, FALLBACK };
