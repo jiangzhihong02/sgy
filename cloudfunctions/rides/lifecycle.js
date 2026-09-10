@@ -222,12 +222,18 @@ async function leave(event, openid) {
 }
 
 async function cancel(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  if (ride.hostOpenid !== openid) return fail("NOT_HOST", "只有发起人能解散");
-  if (Date.now() >= ride.boardAt - T_FREE_EXIT) return fail("TOO_LATE", "距上车不足 30 分钟，不能解散（可自行退出）");
-  await db.collection("rides").doc(ride._id).update({ data: { status: "cancelled", updatedAt: Date.now() } });
-  return ok({ cancelled: true });
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      host: { msg: "只有发起人能解散" },
+      before: { at: (r) => r.boardAt - T_FREE_EXIT, msg: "距上车不足 30 分钟，不能解散（可自行退出）" },
+    },
+    async (ride) => {
+      await db.collection("rides").doc(ride._id).update({ data: { status: "cancelled", updatedAt: Date.now() } });
+      return ok({ cancelled: true });
+    }
+  );
 }
 
 async function checkin(event, openid) {
@@ -286,15 +292,21 @@ async function respondPoll(event, openid) {
 
 // 发起人修改局备注
 async function updateNote(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  if (ride.hostOpenid !== openid) return fail("NOT_HOST", "只有发起人能修改备注");
-  if (!["recruiting", "locked"].includes(ride.status)) return fail("NOT_EDITABLE", "该局已结束，不能改备注");
-  const note = String(event.note || "").trim().slice(0, NOTE_MAX);
-  const noteSafe = await checkText(note);
-  if (!noteSafe.safe) return fail("UNSAFE_CONTENT", "备注含违规或不当内容，请修改");
-  await db.collection("rides").doc(ride._id).update({ data: { note, updatedAt: Date.now() } });
-  return ok({ note });
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      host: { msg: "只有发起人能修改备注" },
+      status: { in: ["recruiting", "locked"], msg: "该局已结束，不能改备注" },
+    },
+    async (ride) => {
+      const note = String(event.note || "").trim().slice(0, NOTE_MAX);
+      const noteSafe = await checkText(note);
+      if (!noteSafe.safe) return fail("UNSAFE_CONTENT", "备注含违规或不当内容，请修改");
+      await db.collection("rides").doc(ride._id).update({ data: { note, updatedAt: Date.now() } });
+      return ok({ note });
+    }
+  );
 }
 
 // 补签到确认：列出"我"待确认的已完成局（结算后未签到、仍在确认窗口内）
@@ -314,30 +326,40 @@ async function confirmPending(event, openid) {
 
 // 补签到确认：rode=true → 补记为已签到并 +1；rode=false → 记爽约 −20（谎报由队友 done 后举报缺勤兜底）
 async function confirmRide(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  if (ride.status !== "done") return fail("NOT_DONE", "拼车结束（已完成）后才能确认");
-  const pc = ride.pendingConfirm;
-  if (!pc || pc.settled) return fail("NO_CONFIRM", "当前无需确认");
-  const now = Date.now();
-  if (now >= pc.dueAt) return fail("CONFIRM_CLOSED", "确认已截止");
-  if (!(pc.openids || []).includes(openid)) return fail("NOT_IN", "你不在待确认名单");
-  if ((pc.resolved || []).includes(openid)) return fail("DUP", "你已确认过");
-  const rode = !!event.rode;
-  const resolved = (pc.resolved || []).concat(openid);
-  const allResolved = (pc.openids || []).every((o) => resolved.includes(o));
-  const members = (ride.members || []).map((m) => (m.openid === openid && rode ? { ...m, checkedInAt: now } : m));
-  const patch = {
-    members,
-    memberCount: members.length,
-    pendingConfirm: { ...pc, resolved, settled: allResolved },
-    updatedAt: now,
-  };
-  if (!rode) patch.noShowConfirmed = (ride.noShowConfirmed || []).concat(openid);
-  await db.collection("rides").doc(ride._id).update({ data: patch });
-  if (rode) await applyCreditDelta(openid, CREDIT_RIDE_OK);
-  else await applyCreditDelta(openid, CREDIT_LEAVE_NO_SHOW);
-  return ok({ rode, creditDelta: rode ? CREDIT_RIDE_OK : CREDIT_LEAVE_NO_SHOW });
+  return withRide(
+    event.rideId,
+    openid,
+    {
+      status: { in: ["done"], msg: "拼车结束（已完成）后才能确认" },
+      before: {
+        // 只有"存在且未结算"的待确认单才有截止窗口；否则跳过（本动作特有的 NO_CONFIRM 由 fn 返回）
+        at: (r) => (r.pendingConfirm && !r.pendingConfirm.settled ? r.pendingConfirm.dueAt : null),
+        msg: "确认已截止",
+      },
+    },
+    async (ride) => {
+      const pc = ride.pendingConfirm;
+      if (!pc || pc.settled) return fail("NO_CONFIRM", "当前无需确认");
+      if (!(pc.openids || []).includes(openid)) return fail("NOT_IN", "你不在待确认名单");
+      if ((pc.resolved || []).includes(openid)) return fail("DUP", "你已确认过");
+      const now = Date.now();
+      const rode = !!event.rode;
+      const resolved = (pc.resolved || []).concat(openid);
+      const allResolved = (pc.openids || []).every((o) => resolved.includes(o));
+      const members = (ride.members || []).map((m) => (m.openid === openid && rode ? { ...m, checkedInAt: now } : m));
+      const patch = {
+        members,
+        memberCount: members.length,
+        pendingConfirm: { ...pc, resolved, settled: allResolved },
+        updatedAt: now,
+      };
+      if (!rode) patch.noShowConfirmed = (ride.noShowConfirmed || []).concat(openid);
+      await db.collection("rides").doc(ride._id).update({ data: patch });
+      if (rode) await applyCreditDelta(openid, CREDIT_RIDE_OK);
+      else await applyCreditDelta(openid, CREDIT_LEAVE_NO_SHOW);
+      return ok({ rode, creditDelta: rode ? CREDIT_RIDE_OK : CREDIT_LEAVE_NO_SHOW });
+    }
+  );
 }
 
 module.exports = {

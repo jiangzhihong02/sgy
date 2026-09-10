@@ -29,6 +29,19 @@ check("member：me 存在 → 通过", () => {
   assert.strictEqual(checkGuards(ride(), me(), now, { member: { msg: "x" } }), null);
 });
 
+// ---- host ----
+check("host：非发起人 → NOT_HOST（带自定义文案）", () => {
+  const v = checkGuards(ride(), me({ openid: "u1" }), now, { host: { msg: "只有发起人能解散" } });
+  assert.strictEqual(v.err, "NOT_HOST");
+  assert.strictEqual(v.msg, "只有发起人能解散");
+});
+check("host：发起人 → 通过", () => {
+  assert.strictEqual(checkGuards(ride(), me({ openid: "host" }), now, { host: { msg: "x" } }), null);
+});
+check("host：me 为空 → NOT_HOST", () => {
+  assert.strictEqual(checkGuards(ride(), null, now, { host: { msg: "x" } }).err, "NOT_HOST");
+});
+
 // ---- status ----
 check("status：不在允许集合 → BAD_STATE", () => {
   const v = checkGuards(ride({ status: "done" }), me(), now, { status: { in: ["recruiting", "locked"], msg: "状态不可退出" } });
@@ -52,16 +65,18 @@ check("before：at 返回 null → 跳过（本动作此刻无窗口）", () => 
   assert.strictEqual(checkGuards(ride(), me(), now, { before: { at: () => null, msg: "x" } }), null);
 });
 
-// ---- 顺序（统一为 成员 → 状态 → 窗口）----
-check("顺序：成员 > 状态 > 窗口", () => {
+// ---- 顺序（统一为 成员 → 角色 → 状态 → 窗口）----
+check("顺序：成员 > 角色 > 状态 > 窗口", () => {
   const all = {
     member: { msg: "m" },
+    host: { msg: "h" },
     status: { in: [], msg: "s" },
     before: { at: () => 0, msg: "b" },
   };
   assert.strictEqual(checkGuards(ride(), null, now, all).err, "NOT_IN"); // 最先卡成员
-  assert.strictEqual(checkGuards(ride(), me(), now, all).err, "BAD_STATE"); // 成员过后卡状态
-  assert.strictEqual(checkGuards(ride(), me(), now, { before: { at: () => 0, msg: "b" } }).err, "TOO_LATE");
+  assert.strictEqual(checkGuards(ride(), me({ openid: "u1" }), now, all).err, "NOT_HOST"); // 再卡角色
+  assert.strictEqual(checkGuards(ride(), me({ openid: "host" }), now, all).err, "BAD_STATE"); // 再卡状态
+  assert.strictEqual(checkGuards(ride(), me({ openid: "host" }), now, { before: { at: () => 0, msg: "b" } }).err, "TOO_LATE");
 });
 
 // ---- 缺省 ----
