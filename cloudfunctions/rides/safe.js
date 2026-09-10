@@ -1,12 +1,12 @@
 // safe.js —— 内容安全检测（文本；微信云调用 security.msgSecCheck）
-// 覆盖面 = 所有"用户可写、他人可读"的文本：局内聊天文字、自定义上车/下车点、备注、昵称、
+// 覆盖面 = 所有"用户可写、他人可读"的短文本字段：自定义上车/下车点、备注、昵称、
 // 校内身份姓名、反馈。入库前各调用点先过 checkText，命中违规（87014 / suggest=risky）直接拦截不入库。
 //
 // ⚠ 范围（如实，别越界宣称）：
 //   * 图片**未**接机器检测——个人主体经云调用不支持 imgSecCheck（在 config.json 声明该权限 DevTools 上传即
 //     报 ResourceInUse，2026-09-09 实证）；mediaCheckAsync 需公开 mediaUrl + 异步回调域名，与本工具
-//     "图片 base64 直存、不落云存储"的架构冲突。聊天图靠：仅同局成员可见 + 每人每局限 1 张 +
-//     建议用途(群二维码) + 成员举报/管理员复核兜底（见 docs/ugc-security-statement.md）。
+//     "用户内容最小化"的设计冲突。自 2026-09-10 起小程序**已无站内聊天、无图片上传**（见 ADR-0017），
+//     用户彼此可见的只剩上述短字段与结构化状态（签到/人数确认），因此不存在图片/长文内容面需要兜底。
 //   * 文本 msgSecCheck 需在 config.json permissions.openapi 声明 ["security.msgSecCheck"]；
 //     重传云函数后权限约 10 分钟缓存生效。对外宣称"已接入内容安全"前先跑 admin.secProbe 确认 errCode 0。
 // ⚠ 降级：msgSecCheck 自身不可用（-604101 权限未生效 / 网络 / 超频）→ 放行 + console.error 记一条，

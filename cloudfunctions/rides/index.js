@@ -1,11 +1,10 @@
 // cloudfunctions/rides —— 拼车局主业务（入口 = 纯 action 路由表）
 // 业务按子领域拆分到本文件夹内：rules(纯规则) / db(共享数据守卫) / lifecycle / queries /
-// chat / social / invites / admin / sweep / gender(性别分级) / account(原独立 user 云函数并入)。
+// social / invites / admin / sweep / gender(性别分级) / account(原独立 user 云函数并入)。
 // 契约见 SPEC.md；改规则改 rules.js。
 const { cloud, fail } = require("./db");
 const lifecycle = require("./lifecycle");
 const queries = require("./queries");
-const chat = require("./chat");
 const social = require("./social");
 const invites = require("./invites");
 const admin = require("./admin");
@@ -31,11 +30,8 @@ const HANDLERS = {
   list: queries.list,
   my: queries.my,
   detail: queries.detail,
-  messages: queries.rideMessages,
   routes: queries.routeList,
   getRules: queries.getRules, // 规则面板下发（文案/数字单一来源 rules.js，客户端快照兜底）
-  // 局内聊天
-  sendMessage: chat.sendMessage,
   // 局内成员间
   memberInfo: social.memberInfo,
   block: social.setBlock,

@@ -119,7 +119,7 @@ async function adminClearIdentity(event, openid) {
 
 // —— 联调辅助 ——
 
-// 管理员：为给定 openid 们创建一条"已完成"的共享拼车局（含示例消息），用于测试历史/举报/再约
+// 管理员：为给定 openid 们创建一条"已完成"的共享拼车局，用于测试历史/举报/再约
 async function adminSeedDone(event, openid) {
   if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const list = (event.members || []).filter((x) => x && typeof x === "string");
@@ -160,22 +160,15 @@ async function adminSeedDone(event, openid) {
       updatedAt: now,
     },
   });
-  const lines = ["到齐了，出发 🚕", "到学校了，下次再拼！"];
-  for (let i = 0; i < lines.length; i++) {
-    const who = members[i % members.length];
-    await db.collection("messages").add({
-      data: { rideId: add._id, openid: who.openid, name: who.name, text: lines[i], createdAt: now - 80 * 60000 + i * 1000 },
-    });
-  }
   return ok({ rideId: add._id, members: list });
 }
 
-// 联调清理：清空 局数据域（rides / messages / invites / reports），保留 users 与 routes。
+// 联调清理：清空 局数据域（rides / invites / reports），保留 users 与 routes。
 // 管理员专用；内测重测前使用。
 async function adminReset(event, openid) {
   if (!isAdmin(openid)) return fail("NO_ADMIN", "无管理员权限");
   const removed = {};
-  for (const c of ["reports", "invites", "messages", "rides"]) {
+  for (const c of ["reports", "invites", "rides"]) {
     let n = 0;
     // 先试批量 where 删除，不支持则退化为分页逐删
     try {

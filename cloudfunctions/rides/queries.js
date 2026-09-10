@@ -1,6 +1,6 @@
-// queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 聊天拉取
+// queries.js —— 只读查询：找局列表 / 我的局 / 局详情 / 线路目录 / 规则面板
 const { T_FREE_EXIT, ACTIVE_STATUS, canCheckin, rulePayload, joinCloseMs } = require("./rules");
-const { db, _, ok, fail, getRide, getMember, recentMessages, blockersOf, advanceMany } = require("./db");
+const { db, _, ok, fail, getRide, getMember, blockersOf, advanceMany } = require("./db");
 
 const view = (r) => ({
   _id: r._id,
@@ -46,7 +46,7 @@ async function my(event, openid) {
   const res = await db.collection("rides").where({ memberOpenids: openid }).limit(100).get();
   const adv = await advanceMany(res.data || []); // 读时自愈：过期未关/未结算的先就地推进
   const rows = adv.map(view);
-  // 分桶排序：未完成按出发时间升序（先出发在前——聊天室切换栏/行程"未完成"都是"下一个要上的局"在前，新加入的局每次重建自动入位）；历史降序（最近完成在前）
+  // 分桶排序：未完成按出发时间升序（先出发在前——行程"未完成"是"下一个要上的局"在前，新加入的局每次重建自动入位）；历史降序（最近完成在前）
   const ongoing = rows.filter((r) => ["recruiting", "locked", "ongoing"].includes(r.status)).sort((a, b) => a.boardAt - b.boardAt);
   const history = rows.filter((r) => ["done", "cancelled", "failed"].includes(r.status)).sort((a, b) => b.boardAt - a.boardAt);
   return ok({ ongoing, history });
@@ -66,7 +66,6 @@ async function detail(event, openid) {
     isMember: !!me,
     isHost: ride.hostOpenid === openid,
     blockedInRide: await blockedNamesIn(ride, openid), // 本局里被我标过「不与其乘车」的人（标记者可见横幅）
-    messages: await recentMessages(ride._id),
   };
   return ok({ ride: d });
 }
@@ -84,13 +83,6 @@ async function blockedNamesIn(ride, openid) {
   }
 }
 
-async function rideMessages(event, openid) {
-  const ride = await getRide(event.rideId);
-  if (!ride) return fail("NOT_FOUND", "这一局不存在或已被删除");
-  if (!getMember(ride, openid)) return fail("NOT_IN", "只有成员能查看聊天");
-  return ok({ messages: await recentMessages(ride._id) });
-}
-
 // 线路目录只读下发（管理员可在 routes 集合增改；客户端拉取后本地快照仅兜底）
 async function routeList(event) {
   const res = await db.collection("routes").where({ enabled: true }).orderBy("directionId", "asc").limit(100).get();
@@ -104,4 +96,4 @@ async function getRules() {
   return ok(rulePayload());
 }
 
-module.exports = { list, my, detail, rideMessages, routeList, getRules };
+module.exports = { list, my, detail, routeList, getRules };

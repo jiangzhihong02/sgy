@@ -7,18 +7,17 @@
 | 目录 | 作用 | 触发 |
 |---|---|---|
 | `routeInit` | 幂等建集合 + 写入一期 7 条线路 | 手动调一次 |
-| `rides` | **唯一业务函数**（原 `user` 已并入删除）：拼车局 create/list/my/detail/join/leave/cancel/checkin/respondPoll/sendMessage/… + 用户档案·信用·复核 login/me/register/adminPending/resolveReport/banUser/adminSetGender（`account.js`） + 校内身份 identitySave/adminIdentities/adminClearIdentity + 反馈 feedback/feedbackList/feedbackHandled | 小程序调用 |
+| `rides` | **唯一业务函数**（原 `user` 已并入删除）：拼车局 create/list/my/detail/join/leave/cancel/checkin/respondPoll/…（**无聊天**，2026-09-10 下线见 ADR-0017） + 用户档案·信用·复核 login/me/register/adminPending/resolveReport/banUser/adminSetGender（`account.js`） + 校内身份 identitySave/adminIdentities/adminClearIdentity + 反馈 feedback/feedbackList/feedbackHandled | 小程序调用 |
 | `rideSweep` | 定时触发 `rides.__sweep`（读时自愈双保险，见 SPEC §0b） | 每分钟定时器 |
 
 ## 部署步骤
 
 1. **开通云开发**：开发者工具右上角「云开发」→ 创建环境 → 复制**环境 ID**。
 2. **填环境 ID**：`sgy/app.js` 的 `globalData.env = "你的环境ID"`。
-3. **上传云函数**：分别右键 `cloudfunctions/routeInit`、`rides`、`rideSweep` →「上传并部署：云端安装依赖」。`rides` 已含原 `user` 能力，请在云开发控制台**删除旧的 `user` 函数**；`routeInit` 会幂等建齐 `users/routes/rides/messages/reports/invites/blocks/feedbacks`。`rideSweep` 的定时触发器在 `config.json`，上传后可在「云开发控制台 → 云函数 → rideSweep → 触发器」确认每分钟一次。
+3. **上传云函数**：分别右键 `cloudfunctions/routeInit`、`rides`、`rideSweep` →「上传并部署：云端安装依赖」。`rides` 已含原 `user` 能力，请在云开发控制台**删除旧的 `user` 函数**；`routeInit` 会幂等建齐 `users/routes/rides/reports/invites/blocks/feedbacks`（`messages` 已随站内聊天下线，2026-09-10，不再建，见 ADR-0017）。`rideSweep` 的定时触发器在 `config.json`，上传后可在「云开发控制台 → 云函数 → rideSweep → 触发器」确认每分钟一次。
 4. **初始化一次**：调用 `routeInit`（开发者工具 → 云开发控制台 → 云函数 → routeInit → 云端测试，event 给 `{}`，或从临时页面 `wx.cloud.callFunction({ name:'routeInit' })`）。它幂等建集合并写入线路。
 5. **建索引**（云开发控制台 → 数据库 → 各集合 → 索引），按 `SPEC.md §0`：
    - `rides`：① `status + boardAt` ② `directionId + boardAt + status` ③ 单字段 `memberOpenids`
-   - `messages`：`rideId + createdAt`
    - `reports`：`rideId`、`status`
    - `users`：`openid`
    - `invites`：`toOpenid + status`

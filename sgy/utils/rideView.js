@@ -1,9 +1,9 @@
 // sgy/utils/rideView.js —— 局卡片的展示视图模型（唯一派生处）
-// 之前 routeLabel/seatText/状态标签/时间/头像位 在 feed·trips·ride·chat 各写一份，
+// 之前 routeLabel/seatText/状态标签/时间/头像位 在 feed·trips·ride 各写一份，
 // 且时间标签已分叉（找局含日期、行程只显时钟）。这里收拢：
 //   cardOf(ride)   —— 列表/详情头部共用字段（routeLabel·时间·座位·状态标签与色）
 //   avatarSlots    —— 找局卡片 fixed 头像位（满=首字+性别框 / 空=灰圈＋）
-//   avatarChar     —— 成员/消息首字头像
+//   avatarChar     —— 成员首字头像（详情成员列表/资料浮层/找局卡片用）
 // 纯函数，仅依赖 domain.js，可在本地 node 冒烟。
 const D = require("./domain");
 

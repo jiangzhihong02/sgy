@@ -14,7 +14,6 @@ const {
   CREDIT_RIDE_OK,
   CREDIT_LEAVE_NO_SHOW,
   ACTIVE_STATUS,
-  MSG_MAX,
   randNick,
 } = require("./rules");
 const { planAdvance } = require("./advance"); // 状态推进的纯判定（无 IO，可单测；时间常量由其自理）
@@ -153,19 +152,6 @@ async function findTimeConflict(openid, boardAt, directionId) {
   );
 }
 
-/** 局内最近 20 条消息（升序，含 type），detail 与聊天轮询共用。 */
-async function recentMessages(rideId) {
-  const msgs = await db
-    .collection("messages")
-    .where({ rideId })
-    .orderBy("createdAt", "desc")
-    .limit(20)
-    .get();
-  return (msgs.data || [])
-    .map((m) => ({ openid: m.openid, name: m.name, text: m.text, type: m.type || "text", createdAt: m.createdAt }))
-    .reverse();
-}
-
 // 标记过"不与其乘车"我的 openid 集合 = 不想带我的人（byOpenid 标过 target=我）。
 // list 用它隐藏 "host ∈ 不想带我的人" 的局 → 对方发起的局对我不下发。
 async function blockersOf(openid) {
@@ -196,8 +182,6 @@ module.exports = {
   blockersOf,
   advanceStatus,
   advanceMany,
-  recentMessages,
-  MSG_MAX,
   isAdmin,
   ADMIN_OPENIDS,
 };

@@ -120,26 +120,6 @@
       <button wx:else class="btn btn-disabled btn-block">{{ride.memberCount >= ride.capacity ? '已满员' : (ride.statusLabel === '招募中' ? '已停止加入' : ride.statusLabel)}}</button>
     </view>
 
-    <!-- 聊天室 -->
-    <view class="section">聊天室</view>
-    <view class="card no-margin chat">
-      <!-- 已加入：跳转去「聊天室」Tab，不再内嵌整块聊天 -->
-      <view wx:if="{{isMember}}" class="joined-chat">
-        <view class="joined-title">你已在队伍里</view>
-        <view class="small muted joined-tip">聊天统一在底部「聊天室」Tab（打开即最新消息）。</view>
-        <button class="btn btn-primary join-chat-btn" bindtap="goChatTab">去聊天室 ›</button>
-      </view>
-
-      <!-- 未加入：保留提示 -->
-      <view wx:else class="locked-chat">
-        <view class="locked-title">待加入拼车队聊天室</view>
-        <view class="small muted locked-tip">
-          加入这一局后才能查看/发送消息。底部「聊天室」Tab 会汇总你所在队伍的聊天，方便随时回来聊。
-        </view>
-        <button wx:if="{{canJoin}}" class="btn btn-primary join-chat-btn" bindtap="onJoin">加入这一局</button>
-      </view>
-    </view>
-
     <!-- 已加入成员才需要转发拉人；未加入的人转发无意义 -->
     <view wx:if="{{isMember}}" class="share-row">
       <button class="btn btn-ghost btn-block" open-type="share">转发到群，还差人</button>
@@ -156,6 +136,6 @@
 
   <view wx:else class="empty">加载中…</view>
 
-  <!-- 成员资料浮层（共用组件：ride 详情与聊天同款） -->
+  <!-- 成员资料浮层（共用组件：局详情点成员头像打开） -->
   <member-sheet id="memberSheet" />
 </view>

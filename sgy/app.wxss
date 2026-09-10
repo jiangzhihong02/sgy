@@ -72,7 +72,7 @@ button::after {
   line-height: 1.2;
 }
 
-/* ---- 底部浮层（半屏面板）共用：member-sheet / rules-panel / 聊天公约 / 关于 ---- */
+/* ---- 底部浮层（半屏面板）共用：member-sheet / rules-panel / 关于 ---- */
 .sheet-mask {
   position: fixed;
   left: 0;

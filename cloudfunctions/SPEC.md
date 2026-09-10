@@ -13,21 +13,20 @@
 - **权限**：所有写操作在云函数内完成；集合权限设为"仅创建者可读写"或"所有用户不可读写(仅云函数)"均可，云函数以管理员身份访问不受限。
 - 每个集合建议加的索引（在控制台手动建，见 README）：
   - `rides`：(status + boardAt)、(directionId + boardAt + status)、`memberOpenids`（数组等值匹配 "我的局/一人一局"）
-  - `messages`：(rideId + createdAt)
   - `reports`：(rideId)、(status)
   - `users`：(openid)
   - `feedbacks`：(status)
 
 ## 0b. 近期修订（2026-09，详见 docs/adr/0010）
 
-- 参与动作（create/join/sendMessage/inviteSend）要求 `users.registered=true`，否则 `NEED_REGISTER`。
+- 参与动作（create/join/inviteSend）要求 `users.registered=true`，否则 `NEED_REGISTER`。
 - 并发规则：同人多个未出发局——**任何方向**出发时间差 <1h（`T_MIN_GAP`）即冲突；**同方向**（返校×返校 / 离校×离校）再额外要求 ≥2h（`T_SAME_DIR`：同向需先完成一趟往返）。冲突失败带 `data.conflict`。
 - 举报（complaint）：kind 限 `gender_fake|lateness|absence`；同一(局,人)同类一人一次；同局 ≥2 名不同成员联名自动坐实并只扣一次。
-- rides 新增 action：`messages`（轻量拉消息）、`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。消息带 `type: text|image`（image=base64 data URI，单条 ≤200k 字符，每人每局 1 张）。
+- rides action：`updateNote`（发起人改备注）、`reinvite`（下周同刻再约）、`adminSeedDone`（管理员造已完成局）。
 - user 新增：`register`、`adminPending` 返回带对象/举报人/线路中文。
-- **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/chat/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
+- **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
 - **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
-- **聊天室生命周期（2026-09-08）**：局完成后保留 48h（`chatKeepMs = T_SETTLE + CONFIRM_WINDOW_MS`），期间仍可发言（补 AA 账）；过后 `sendMessage` 返回 `CHAT_CLOSED`；历史消息随时可在「行程」查看。
+- **站内聊天已下线（2026-09-10，ADR-0017）**：原 `chat.js` / `sendMessage` / `messages` / `detail.messages` 全部移除，`messages` 集合不再写入与读取。队伍沟通改为：到点集合见人 + 结构化状态（签到/人数确认/备注/成员列表），AA 线下当面。个人主体规避「社交-笔记」UGC 类目。
 - **加急局（2026-09-08）**：`create` 接受 `urgent`——出发前 15–30 分钟（`URGENT_MIN_LEAD`/`URGENT_WINDOW`）内可发起，绕开 `TOO_SOON`；`rides.urgent` 标记；关局/`canJoin`/加入窗口统一用 `joinCloseMs`（加急 T−5、正常 T−10）；凑不齐 2 人自动 `failed`（与正常未成局一致，不计爽约、不扣发起人分）。
 - **云函数收敛（2026-09-07）**：独立 `user` 云函数删除、并入 `rides`（用户动作见 `rides/account.js`，客户端统一 `call('rides', …)`）；管理员名单收敛到 `rides/db.js`；性别不实分级收敛到 `rides/gender.js`（`social.complaint` 与 `account.resolveReport` 共用）。
 
@@ -82,8 +81,8 @@
 | `settled` | bool，done 结算是否已执行 |
 | `pendingConfirm` | object \| null，结算时对未签到成员挂起 `{ dueAt, openids[], resolved[], settled }`，供补签到确认（confirmPending/confirmRide） |
 
-### messages（局内聊天）
-`{ rideId, openid, name, text, createdAt }`
+### messages（局内聊天）—— 已下线（2026-09-10，ADR-0017）
+原 `{ rideId, openid, name, text, createdAt }`；`chat.js`/`sendMessage`/`rideMessages` 随站内聊天一并删除，`messages` 集合不再写入与读取。旧存量行不再被任何接口返回。
 
 ### reports（爽约 / 举报 / 申诉）
 | 字段 | 说明 |
@@ -164,8 +163,8 @@ ongoing
 `exports.main = async (event)`，按 `event.action` 分发：
 - `create`：入 `{ routeId, date, time, capacity, note, urgent? }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009），`directionId='in'` 时可传 `from` 作自定义上车点（ADR-0014，均 ≤14 字）。`urgent=true` 时允许出发前 15–30 分钟（绕开 TOO_SOON），存 `rides.urgent`。出 `{ rideId }`。
 - `list`：入 `{ directionId?, pickup?, date? }` 可选。出未出发局数组（供"找局"，含 members 精简视图与 poll 状态）。默认只返回 `status∈{recruiting,locked}` 且 `boardAt > now − 某窗口`。
-- `my`：出我参与/发起的局（ongoing 进行中 / done 历史），不带消息。
-- `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到，+ 最新 N 条 messages。
+- `my`：出我参与/发起的局（ongoing 进行中 / done 历史）。
+- `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到 + 本局被我标过「不与其乘车」的成员名。**不含消息**（站内聊天已下线，2026-09-10）。
 - `join`：入 `{ rideId }`。规则见 §3.2。
 - `leave`：入 `{ rideId }`。规则见 §3.4，含发起人移交/空局取消。
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。
@@ -175,11 +174,10 @@ ongoing
 - `complaint`：入 `{ rideId, targetOpenid, kind: gender_fake|lateness|absence, note? }`。同局成员提交；同类同一人一局一次；同局 ≥2 名不同成员联名自动坐实（取最重扣分一次），否则 `pending` 待管理员复核。迟到/缺勤仅 `done` 后可报，性别不实随时可报。**性别不实分级**：L1 联名/复核坐实=清空性别；L2（单局 ≥3 名不同成员同报，或该用户坐实累计 ≥2 次）=反推为相反性别并锁 `genderLocked`（仅 `adminSetGender` 可解）。
 - `memberInfo` / `block`：成员资料（含信用/是否已标记/`schoolVerified` 仅绿标）与"不与其乘车"标记。
 - `invite` / `inviteList` / `inviteRespond` / `reinvite`：组队邀请与"下周同一时刻再约"（复用/新建进行中局并发邀请）。
-- `sendMessage` / `messages`：发消息（text；image=base64 见 §0b）与拉最近 20 条。已完成局保留窗 `boardAt + T_SETTLE + CONFIRM_WINDOW_MS`（48h）内仍可发（补账用），过后返回 `CHAT_CLOSED`。
 - `routes`：只读下发线路目录（enabled 全集），供发局/筛选下拉；本地快照仅兜底（见 sgy/utils/routes.js）。
-- `getRules`：下发面向用户规则面板 `{ timeline, creditTable, creditFooter, privacySections, limits:{imgMax, chatKeepMs, urgentMinLead, urgentWindow, …} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT/PREVIEW_TEXT 均已删除，避免双轨漂移）；`timeline` 供详情与发局页的规则表；`chatKeepMs` 供客户端判断聊天室保留窗；客户端 `sgy/utils/rulesText.js` 快照兜底。
+- `getRules`：下发面向用户规则面板 `{ timeline, creditTable, creditFooter, privacySections, limits:{noteMax, urgentMinLead, urgentWindow} }`——文案与数值唯一来源 `rides/rules.js rulePayload()`（同文件同常量，改数值自动带出文案）；`creditTable`/`privacySections` 为可视化面板的结构化数据（信用分表格 / 隐私分节），是规则的**唯一表述格式**（整段散文 CREDIT_TEXT/PRIVACY_TEXT/PREVIEW_TEXT 均已删除，避免双轨漂移）；`timeline` 供详情与发局页的规则表；客户端 `sgy/utils/rulesText.js` 快照兜底。
 - `updateNote` / `adminSeedDone`：发起人改备注（≤50 字）／管理员造已完成局（联调用）。
-- `adminReset`（管理员）：清空局数据域 `rides / messages / invites / reports`，**保留 users 与 routes**（内测重测前用）。
+- `adminReset`（管理员）：清空局数据域 `rides / invites / reports`，**保留 users 与 routes**（内测重测前用）。
 - `feedback`（仅注册用户）/ `feedbackList`（管理员）/ `feedbackHandled`（管理员）：提交/查看/标记已处理用户反馈（集合 `feedbacks`，见 §1）。
 - `__sweep`：由 rideSweep 定时触发调用的结算/状态推进（rides 文件夹内 `sweep.js`，数值以 §2 为准）。
 
@@ -198,7 +196,7 @@ ongoing
 - **管理员判定**：唯一来源 `cloudfunctions/rides/db.js` 的 `ADMIN_OPENIDS`（内测期作者）。改名单改那一处即可。
 
 ### `routeInit`（一次性初始化，手动调用一次）
-- 幂等创建集合（users/routes/rides/messages/reports；已存在则跳过）。
+- 幂等创建集合（users/routes/rides/reports；已存在则跳过）。
 - 写入一期 7 条 routes（已存在按 routeId 跳过）。
 - 出每个集合的结果。
 
@@ -214,5 +212,5 @@ ongoing
 1. 开发者工具开通云开发 → 建环境 → 拿环境 ID 填 `sgy/app.js` 的 `env`。
 2. 右键 `cloudfunctions/routeInit` → 「上传并部署：云端安装依赖」，在云开发控制台或临时页调用一次初始化。
 3. 上传 `rides` / `user` / `rideSweep`（rideSweep 带 config.json 触发器）。
-4. 云开发控制台给 rides/messages/reports/users 按 §0 建索引。
+4. 云开发控制台给 rides/reports/users 按 §0 建索引。
 5. 作者 openid 填进 `rides/db.js` 顶部的 `ADMIN_OPENIDS`。

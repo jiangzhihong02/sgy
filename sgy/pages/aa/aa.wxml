@@ -3,7 +3,7 @@
   <!-- 免责声明 -->
   <view class="card no-margin intro">
     <view class="strong intro-title">平台只撮合，不收款</view>
-    <view class="small muted">车费由成员自行分摊，线下当面或站内转账结清。平台不负责收款与追讨；出现逃单、不给钱的情况，请自行协商。</view>
+    <view class="small muted">车费由成员自行分摊，见面当面对付。平台不负责收款与追讨；出现逃单、不给钱的情况，请自行协商。</view>
   </view>
 
   <!-- 方法一（推荐）· 面对面 -->
@@ -21,17 +21,10 @@
     <view wx:else class="img-placeholder">【图位】微信「面对面红包」教程 · 待配图</view>
   </view>
 
-  <!-- 方法二 · 聊天室发收款码 -->
+  <!-- 方法二 · 微信群「群收款」 -->
   <view class="card no-margin method">
-    <view class="method-title">方法二 · 聊天室发收款码</view>
-    <view class="method-desc">拼完车后，把微信/支付宝个人收款码发到局聊天室让队友付——只发给已同车的人，别提前收陌生人的钱。</view>
-    <view class="method-warn">⚠️ 收款码有时效性，可能逃单——尽量当面结清。</view>
-  </view>
-
-  <!-- 方法三 · 微信群收群收款 -->
-  <view class="card no-margin method">
-    <view class="method-title">方法三 · 微信群「群收款」</view>
-    <view class="method-desc">建一个微信群，用「我 → 服务/支付 → 收付款 → 群收款」发起，让每人填写应摊金额。</view>
+    <view class="method-title">方法二 · 微信群「群收款」</view>
+    <view class="method-desc">见面后建一个微信群，用「我 → 服务/支付 → 收付款 → 群收款」发起，让每人填写应摊金额。</view>
     <view class="method-warn">⚠️ 有人退群/失联可能收不上来。</view>
   </view>
 

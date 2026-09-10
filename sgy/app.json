@@ -1,7 +1,6 @@
 {
   "pages": [
     "pages/feed/feed",
-    "pages/chat/chat",
     "pages/trips/trips",
     "pages/profile/profile",
     "pages/create/create",
@@ -29,12 +28,6 @@
         "text": "找局",
         "iconPath": "images/tab/feed.png",
         "selectedIconPath": "images/tab/feed-active.png"
-      },
-      {
-        "pagePath": "pages/chat/chat",
-        "text": "聊天室",
-        "iconPath": "images/tab/chat.png",
-        "selectedIconPath": "images/tab/chat-active.png"
       },
       {
         "pagePath": "pages/trips/trips",

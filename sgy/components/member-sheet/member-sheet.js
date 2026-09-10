@@ -1,5 +1,5 @@
-// components/member-sheet —— 成员资料浮层（ride 详情与聊天共用；后端 memberInfo/block/complaint/reinvite 的唯一前端入口）
-// 页面用法：<member-sheet id="memberSheet" /> 然后 this.selectComponent("#memberSheet").open({ rideId, targetOpenid, name, meOpenid, isDone, mode })
+// components/member-sheet —— 成员资料浮层（局详情成员列表的唯一入口；后端 memberInfo/block/complaint/reinvite 的唯一前端入口）
+// 页面用法：<member-sheet id="memberSheet" /> 然后 this.selectComponent("#memberSheet").open({ rideId, targetOpenid, name, meOpenid, isDone })
 const api = require("../../utils/api.js");
 const { avatarChar } = require("../../utils/rideView.js");
 const { frameCls } = require("../../utils/domain.js");
@@ -15,7 +15,7 @@ Component({
   },
 
   methods: {
-    /** 打开浮层：拉 memberInfo 后展示。isDone 决定 举报可选项/是否可再约（仅 ride 已完成局）。mode 保留用（chat 恒 isDone=false）。 */
+    /** 打开浮层：拉 memberInfo 后展示。isDone 决定 举报可选项/是否可再约（仅 ride 已完成局）。 */
     open(opts) {
       this._rideId = opts.rideId;
       this._me = opts.meOpenid || "";

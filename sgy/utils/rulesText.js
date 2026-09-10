@@ -26,7 +26,7 @@ const FALLBACK = {
     {
       title: "性别（自报，不验证）",
       lines: [
-        "仅用于组队/聊天里以头像框颜色辨认（蓝男·粉女）。",
+        "仅用于组队/上车集合时以头像框颜色辨认彼此（蓝男·粉女）。",
         "自报不实会被同车人举报：坐实后清空性别并扣 -20。",
         "同一局 ≥3 名成员同报、或多次坐实 → 系统把性别改为判定的另一性别并锁定，仅管理员可纠正。",
       ],
@@ -41,10 +41,10 @@ const FALLBACK = {
     },
     {
       title: "联系方式",
-      lines: ["不展示微信号。", "站内联系走局内聊天室。"],
+      lines: ["不展示微信号、不提供站内私聊。", "按约定时间到上车点的士站集合，凭备注与成员列表互相辨认；车费线下当面对付。"],
     },
   ],
-  limits: { msgMax: 200, imgMax: 500000, noteMax: 50, chatKeepMs: 175500000, urgentMinLead: 900000, urgentWindow: 1800000 }, // chatKeepMs=45min+48h；urgentMinLead=15min、urgentWindow=30min
+  limits: { noteMax: 50, urgentMinLead: 900000, urgentWindow: 1800000 }, // urgentMinLead=15min、urgentWindow=30min
 };
 
 let cache = null; // null = 尚未成功拉到云端（用快照兜底）
@@ -70,9 +70,7 @@ const timeline = () => (payload().timeline || []).map((r) => ({ t: r.t, d: r.d }
 const creditTable = () => payload().creditTable || [];
 const creditFooter = () => payload().creditFooter || "";
 const privacySections = () => payload().privacySections || [];
-const imgMax = () => ((payload().limits || {}).imgMax) || 500000;
-const chatKeepMs = () => ((payload().limits || {}).chatKeepMs) || 175500000;
 const urgentMinLead = () => ((payload().limits || {}).urgentMinLead) || 900000;
 const urgentWindow = () => ((payload().limits || {}).urgentWindow) || 1800000;
 
-module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, imgMax, chatKeepMs, urgentMinLead, urgentWindow };
+module.exports = { payload, load, timeline, creditTable, creditFooter, privacySections, urgentMinLead, urgentWindow };

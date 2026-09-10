@@ -1,5 +1,5 @@
 // sgy/utils/autopoll.js —— 「页面在眼前就轮询、离开就停」的公共定时器。
-// 收编 feed(10s)/ride(6s)/chat(5s) 三处手搓的 start/stop + onShow/onHide/onUnload 样板。
+// 收编 feed(10s)/ride(6s) 两处手搓的 start/stop + onShow/onHide/onUnload 样板。
 // 用法（页面 onLoad 初始化一次）：
 //   this._poll = autopoll({ intervalMs: 6000, idleWhile: () => bool, tick: () => this.refresh() });
 //   onShow(){ this._poll.start(); }  onHide/onUnload(){ this._poll.stop(); }

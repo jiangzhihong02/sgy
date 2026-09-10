@@ -35,8 +35,6 @@ const ACTIVE_STATUS = ["recruiting", "locked"]; // "未出发进行中"：时间
 const PARTICIPANT_STATUS = ["recruiting", "locked", "ongoing"]; // 可签到等成员操作
 
 // —— 文本上限 ——
-const MSG_MAX = 200; // 文本消息长度
-const MSG_IMG_MAX = 500000; // 图片消息 = base64 data URI，单条字符上限（≈≤370KB 图；前端 q55→q30 两档压缩）
 const NOTE_MAX = 50; // 发起人备注长度
 
 /** 默认昵称随机生成：每人不同，注册时还可改（三个云函数的统一口径）。 */
@@ -86,7 +84,7 @@ const PRIVACY_SECTIONS = [
   {
     title: "性别（自报，不验证）",
     lines: [
-      "仅用于组队/聊天里以头像框颜色辨认（蓝男·粉女）。",
+      "仅用于组队/上车集合时以头像框颜色辨认彼此（蓝男·粉女）。",
       `自报不实会被同车人举报：坐实后清空性别并扣 ${KIND_DELTA.gender_fake}。`,
       "同一局 ≥3 名成员同报、或多次坐实 → 系统把性别改为判定的另一性别并锁定，仅管理员可纠正。",
     ],
@@ -101,7 +99,7 @@ const PRIVACY_SECTIONS = [
   },
   {
     title: "联系方式",
-    lines: ["不展示微信号。", "站内联系走局内聊天室。"],
+    lines: ["不展示微信号、不提供站内私聊。", "按约定时间到上车点的士站集合，凭备注与成员列表互相辨认；车费线下当面对付。"],
   },
 ];
 
@@ -113,10 +111,7 @@ function rulePayload() {
     creditFooter: CREDIT_FOOTER,
     privacySections: PRIVACY_SECTIONS,
     limits: {
-      msgMax: MSG_MAX,
-      imgMax: MSG_IMG_MAX,
       noteMax: NOTE_MAX,
-      chatKeepMs: T_SETTLE + CONFIRM_WINDOW_MS, // 聊天室保留窗：结算后 48h（与补签确认同宽），过后服务端禁发
       urgentMinLead: URGENT_MIN_LEAD, // 加急局最早提前量（客户端时间下限）
       urgentWindow: URGENT_WINDOW, // 加急局窗口（客户端判定勾选可用）
     },
@@ -146,8 +141,6 @@ module.exports = {
   KIND_DELTA,
   ACTIVE_STATUS,
   PARTICIPANT_STATUS,
-  MSG_MAX,
-  MSG_IMG_MAX,
   NOTE_MAX,
   randNick,
   dateTimeToMs,

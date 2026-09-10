@@ -1,7 +1,7 @@
 {
   "name": "rides",
   "version": "1.0.0",
-  "description": "ride business: create/list/join/leave/cancel/checkin/poll/report/chat",
+  "description": "ride business: create/list/join/leave/cancel/checkin/poll/report/identity",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

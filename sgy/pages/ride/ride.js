@@ -1,5 +1,5 @@
 // pages/ride/ride.js —— 局详情（云 rides.detail 等）
-// 聊天已统一搬到「聊天室」Tab：本页不再内嵌聊天，成员点「去聊天室」跳转。
+// 站内聊天已下线（2026-09-10，见 ADR-0017）：成员在详情页看成员列表/签到/备注/人数确认，到点集合。
 const api = require("../../utils/api.js");
 const { cardOf, avatarChar } = require("../../utils/rideView.js");
 const { dayLabel, frameCls } = require("../../utils/domain.js");
@@ -114,12 +114,6 @@ Page({
       loaded: true,
       errorMsg: "",
     });
-  },
-
-  goChatTab() {
-    // 让聊天室 Tab 选中这一局：switchTab 不带参数，用 globalData 传目标局 id（chat.onShow 消费后清除）
-    getApp().globalData.pendingChatRide = this._rideId;
-    wx.switchTab({ url: "/pages/chat/chat" });
   },
 
   async run(action, data, successText) {
