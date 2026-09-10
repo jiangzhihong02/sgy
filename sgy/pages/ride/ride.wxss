@@ -88,6 +88,23 @@
   padding: 8rpx 0 48rpx;
 }
 
+/* ---- 集合口令 ---- */
+.meet-code {
+  margin-top: 20rpx;
+  padding: 20rpx 24rpx;
+}
+.mc-num {
+  font-size: 44rpx;
+  font-weight: 700;
+  letter-spacing: 8rpx;
+  color: #07c160;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.mc-tip {
+  margin-top: 8rpx;
+  line-height: 1.6;
+}
+
 /* ---- 轮询卡 ---- */
 .poll-card {
   margin-top: 20rpx;

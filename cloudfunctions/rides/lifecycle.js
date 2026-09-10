@@ -14,6 +14,7 @@ const {
   PARTICIPANT_STATUS,
   ACTIVE_STATUS,
   NOTE_MAX,
+  randMeetCode,
   dateTimeToMs,
 } = require("./rules");
 const {
@@ -39,6 +40,25 @@ function conflictMsg(conf, boardAt, directionId) {
   const sameDir = directionId && conf.directionId === directionId && diff >= T_MIN_GAP && diff < T_SAME_DIR;
   if (!sameDir) return null;
   return `同一时段你已有一班同方向「${dirLabel(directionId)}」局：同向出发需先完成一趟往返，两局间隔需 ≥2 小时。`;
+}
+
+// 集合口令：4 位数字。与**同一上车点**的活动局避免撞号（撞了现场喊口令会串局）；
+// 最多试 5 次，集合缺失/未建索引等异常时降级为直接返回随机号（不因它挡住发局）。
+async function pickMeetCode(from) {
+  let code = randMeetCode();
+  try {
+    for (let i = 0; i < 5; i++) {
+      const hit = await db
+        .collection("rides")
+        .where({ from, code, status: _.in(["recruiting", "locked", "ongoing"]) })
+        .count();
+      if (hit.total === 0) return code;
+      code = randMeetCode();
+    }
+  } catch (e) {
+    /* 降级：直接用当前随机号 */
+  }
+  return code;
 }
 
 async function create(event, openid) {
@@ -95,6 +115,7 @@ async function create(event, openid) {
   }
 
   const now = Date.now();
+  const meetCode = await pickMeetCode(route.from); // 集合口令（到场互认 / 微信面对面建群用，见 ADR-0018）
   const member = { openid, name: user.nickName || "拼友", gender: user.gender || "", role: "host", checkedInAt: 0, joinedAt: now };
   const add = await db.collection("rides").add({
     data: {
@@ -107,6 +128,7 @@ async function create(event, openid) {
       capacity,
       womenOnly,
       note,
+      code: meetCode,
       status: "recruiting",
       urgent,
       hostOpenid: openid,

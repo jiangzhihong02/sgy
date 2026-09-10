@@ -27,6 +27,7 @@
 - **rides 入口为纯 action 路由表**：业务按子领域分文件（`lifecycle/queries/social/invites/admin/sweep`），规则常量唯一来源 `cloudfunctions/rides/rules.js`；`rideSweep` 云函数退化为每分钟调 `rides.__sweep` 的委托（先部署 rides 再部署 rideSweep）。
 - **状态推进为"读时自愈"（不依赖定时器）**：`db.getRide`/`db.advanceMany` 在读取时即就地推进到期状态（关局/上路/结算，结算防重 `settled`）；`__sweep` 仅作批量双保险，与读取共用 `advanceStatus`。
 - **站内聊天已下线（2026-09-10，ADR-0017）**：原 `chat.js` / `sendMessage` / `messages` / `detail.messages` 全部移除，`messages` 集合不再写入与读取。队伍沟通改为：到点集合见人 + 结构化状态（签到/人数确认/备注/成员列表），AA 线下当面。个人主体规避「社交-笔记」UGC 类目。
+- **集合口令（2026-09-10，ADR-0018）**：`rides.code`＝系统生成的 4 位数字，发局时生成（`pickMeetCode` 与同一上车点的活动局避免撞号）；**仅同局成员**在 `detail` 里拿到。用途：到场互认 + 成员在微信「面对面建群」输入同号建群。见 CONTEXT「集合口令」。
 - **加急局（2026-09-08）**：`create` 接受 `urgent`——出发前 15–30 分钟（`URGENT_MIN_LEAD`/`URGENT_WINDOW`）内可发起，绕开 `TOO_SOON`；`rides.urgent` 标记；关局/`canJoin`/加入窗口统一用 `joinCloseMs`（加急 T−5、正常 T−10）；凑不齐 2 人自动 `failed`（与正常未成局一致，不计爽约、不扣发起人分）。
 - **云函数收敛（2026-09-07）**：独立 `user` 云函数删除、并入 `rides`（用户动作见 `rides/account.js`，客户端统一 `call('rides', …)`）；管理员名单收敛到 `rides/db.js`；性别不实分级收敛到 `rides/gender.js`（`social.complaint` 与 `account.resolveReport` 共用）。
 
@@ -71,6 +72,7 @@
 | `status` | `recruiting` \| `locked` \| `ongoing` \| `done` \| `cancelled` \| `failed` |
 | `womenOnly` | bool（**废弃**：UI 已移除"仅限女生"，仅历史数据保留，不再参与任何校验） |
 | `note` | string，发起人备注/暗号（≤50 字） |
+| `code` | string，**4 位集合口令**（系统生成，`randMeetCode`）。到场互认 / 微信「面对面建群」用；**仅同局成员可见**（`detail` 只对成员返回），不进找局列表。见 ADR-0018 |
 | `hostOpenid` | string |
 | `memberCount` | number（冗余，含发起人） |
 | `members` | array of `{ openid, name, gender, role: 'host'\|'member', checkedInAt: number\|0, joinedAt: number }`（gender 为加入时快照，用于头像框着色） |
@@ -164,7 +166,7 @@ ongoing
 - `create`：入 `{ routeId, date, time, capacity, note, urgent? }`（`time` 形如 `"07:40"`，与 `date` 拼为 boardAt）；`routeId` 缺省且 `directionId='out'` 时可传 `to` 作自定义下车点（ADR-0009），`directionId='in'` 时可传 `from` 作自定义上车点（ADR-0014，均 ≤14 字）。`urgent=true` 时允许出发前 15–30 分钟（绕开 TOO_SOON），存 `rides.urgent`。出 `{ rideId }`。
 - `list`：入 `{ directionId?, pickup?, date? }` 可选。出未出发局数组（供"找局"，含 members 精简视图与 poll 状态）。默认只返回 `status∈{recruiting,locked}` 且 `boardAt > now − 某窗口`。
 - `my`：出我参与/发起的局（ongoing 进行中 / done 历史）。
-- `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到 + 本局被我标过「不与其乘车」的成员名。**不含消息**（站内聊天已下线，2026-09-10）。
+- `detail`：入 `{ rideId }`。出 rides doc + 我是否成员 + 是否可加入/可签到 + 本局被我标过「不与其乘车」的成员名 + **成员可见的 `code`（集合口令；非成员为空串）**。**不含消息**（站内聊天已下线，2026-09-10）。
 - `join`：入 `{ rideId }`。规则见 §3.2。
 - `leave`：入 `{ rideId }`。规则见 §3.4，含发起人移交/空局取消。
 - `cancel`：入 `{ rideId }`。发起人解散，规则见 §3.5。

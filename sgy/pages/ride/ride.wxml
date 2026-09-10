@@ -80,10 +80,19 @@
         <view class="flex-1 member-name">
           <text>{{item.name}}</text>
           <text wx:if="{{item.role === 'host'}}" class="tag tag-green host-tag">发起人</text>
-          <text wx:if="{{item.checked}}" class="tag tag-gray">已签到</text>
+          <text wx:if="{{item.checked}}" class="tag tag-gray">已到 {{item.checkedAt}}</text>
           <text wx:if="{{item.isMe}}" class="tag tag-orange">我</text>
         </view>
       </view>
+    </view>
+
+    <!-- 集合口令（仅成员可见）：到场互认 / 微信「面对面建群」用 -->
+    <view wx:if="{{isMember && ride.code}}" class="card no-margin meet-code">
+      <view class="row-between">
+        <text class="small muted">集合口令</text>
+        <text class="mc-num">{{ride.code}}</text>
+      </view>
+      <view class="small muted mc-tip">到点后和队友对一句这个口令认人；也可以在微信「面对面建群」里输入这 4 位数字直接建群。</view>
     </view>
 
     <!-- 被标记者入队提醒（标记者本人可见；放行但提醒） -->

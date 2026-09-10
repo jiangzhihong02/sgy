@@ -65,6 +65,7 @@ async function detail(event, openid) {
     canCancel: ride.hostOpenid === openid && now < ride.boardAt - T_FREE_EXIT,
     isMember: !!me,
     isHost: ride.hostOpenid === openid,
+    code: me ? ride.code || "" : "", // 集合口令：仅成员可见（到场互认用，见 ADR-0018）
     blockedInRide: await blockedNamesIn(ride, openid), // 本局里被我标过「不与其乘车」的人（标记者可见横幅）
   };
   return ok({ ride: d });

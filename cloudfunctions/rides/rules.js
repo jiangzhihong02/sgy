@@ -40,6 +40,9 @@ const NOTE_MAX = 50; // 发起人备注长度
 /** 默认昵称随机生成：每人不同，注册时还可改（三个云函数的统一口径）。 */
 const randNick = () => `拼友${Math.floor(1000 + Math.random() * 9000)}`;
 
+/** 4 位集合口令：系统生成，成员到场互认用；也可在微信「面对面建群」里输入同一组数字直接建群（见 ADR-0018）。 */
+const randMeetCode = () => String(Math.floor(Math.random() * 10000)).padStart(4, "0");
+
 /** date + "HH:mm"（深港同为 UTC+8）→ 毫秒；解析失败返回 0。 */
 function dateTimeToMs(date, time) {
   const t = Date.parse(`${date}T${time}:00+08:00`);
@@ -143,6 +146,7 @@ module.exports = {
   PARTICIPANT_STATUS,
   NOTE_MAX,
   randNick,
+  randMeetCode,
   dateTimeToMs,
   canCheckin,
   rulePayload,

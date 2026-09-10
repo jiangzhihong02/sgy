@@ -2,7 +2,7 @@
 // 管理员名单唯一来源 db.js（isAdmin）；扣分定级唯一来源 rules.js KIND_DELTA；性别分级复用 gender.js。
 // 复核/身份管理动作自 account.js 迁入（2026-09-08）："管理员"一个模块一个家。
 const { db, _, ok, fail, ensureUser, applyCreditDelta, isAdmin, cloud } = require("./db");
-const { KIND_DELTA } = require("./rules");
+const { KIND_DELTA, randMeetCode } = require("./rules");
 const { applyGenderFake } = require("./gender");
 
 // —— 复核 / 举报坐实 ——
@@ -148,6 +148,7 @@ async function adminSeedDone(event, openid) {
       capacity: 4,
       womenOnly: false,
       note: "联调用·已完成局（adminSeedDone）",
+      code: randMeetCode(), // 集合口令（联调局也带上，保持字段不缺；见 ADR-0018）
       status: "done",
       hostOpenid: list[0],
       memberCount: list.length,

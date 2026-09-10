@@ -2,7 +2,7 @@
 // 站内聊天已下线（2026-09-10，见 ADR-0017）：成员在详情页看成员列表/签到/备注/人数确认，到点集合。
 const api = require("../../utils/api.js");
 const { cardOf, avatarChar } = require("../../utils/rideView.js");
-const { dayLabel, frameCls } = require("../../utils/domain.js");
+const { dayLabel, frameCls, fmtTime } = require("../../utils/domain.js");
 const autopoll = require("../../utils/autopoll.js");
 const rulesText = require("../../utils/rulesText.js");
 const { decideJoinGate } = require("../../utils/rideGate.js"); // 加入前确认门控（纯判定）
@@ -91,6 +91,7 @@ Page({
         statusCls: c.statusCls,
         seatText: c.seatText,
         note: d.note,
+        code: d.code || "", // 集合口令（仅成员有值；见 ADR-0018）
         memberCount: d.memberCount,
         capacity: d.capacity,
         status: d.status,
@@ -102,6 +103,7 @@ Page({
           frame: frameCls(m.gender),
           avatarChar: avatarChar(m.name),
           checked: m.checkedInAt > 0,
+          checkedAt: m.checkedInAt ? fmtTime(m.checkedInAt) : "", // 到场时刻（谁到了、几点到，见 ADR-0018）
           isMe: m.openid === this._openid,
         })),
       },
