@@ -25,7 +25,9 @@ const ok = (data) => ({ ok: true, data });
 const fail = (err, msg, data = null) => ({ ok: false, err, msg, data });
 
 // 管理员名单：原散落 rides/admin.js 与已删除的 user/index.js 两份，现收敛为本可部署单元单一来源。
-const ADMIN_OPENIDS = ["oDhfnxajsWOYp-ak-V7Vmnm953q0"]; // 内测期作者本人
+// 留空 = 无管理员。部署前填你自己的 openid（获取方式见 cloudfunctions/README.md 第 6 步）。
+// 原值已随本次清理移除，需要时从上一个提交取回：git show HEAD~1:cloudfunctions/rides/db.js
+const ADMIN_OPENIDS = [];
 const isAdmin = (openid) => ADMIN_OPENIDS.includes(openid);
 
 /** 路线/局的简短摘要（时间冲突对比等用，不含 返校/离校 前缀）。 */
